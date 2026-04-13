@@ -1,0 +1,73 @@
+Metadata-Version: 2.4
+Name: justfiles
+Version: 0.1.0.dev0
+Summary: A modular collection of [just](https://github.com/casey/just) recipes to supercharge your development workflow.
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+
+# 🛠️ Justfiles
+
+A modular collection of [just](https://github.com/casey/just) recipes to supercharge your development workflow.
+
+[![Just](https://img.shields.io/badge/just-ready-orange.svg)](https://github.com/casey/just)
+
+## ✨ Features
+
+- **Modular Design:** Import only what you need (Git, Pre-commit, Just utilities, ...).
+- **Pre-commit Ready:** Automated formatting and validation for your justfiles.
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [just](https://github.com/casey/just#installation)
+
+### For Development
+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Required for pre-commit hooks and environment management)
+
+
+## 🚀 Recommended setup
+
+The best way to use these recipes in your own project is by adding this repository as a git submodule. This allows you to keep the recipes updated and choose exactly which modules to import.
+
+### 1. Add as a Submodule
+
+In your project's root directory:
+
+```bash
+git submodule add https://github.com/dtatarkin/justfiles.git justfiles
+```
+
+### 2. Import Modules
+
+In your main `justfile`, import the modules you need:
+
+```just
+# Import all modules
+import "justfiles/justfile"
+
+# OR import specific modules
+import "justfiles/git.just"
+import "justfiles/pre-commit.just"
+```
+
+### 3. Update Recipes
+
+To get the latest improvements:
+
+```bash
+git submodule update --remote justfiles
+```
+
+## 🛠️ Usage
+
+Simply run `just` to see the available recipes:
+
+```bash
+just
+```
+
+## 🤝 Contributing
+
+Feel free to open issues or submit pull requests with new modules or improvements!

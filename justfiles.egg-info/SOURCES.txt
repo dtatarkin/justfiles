@@ -1,0 +1,6 @@
+README.md
+pyproject.toml
+justfiles.egg-info/PKG-INFO
+justfiles.egg-info/SOURCES.txt
+justfiles.egg-info/dependency_links.txt
+justfiles.egg-info/top_level.txt

@@ -1,0 +1,25 @@
+exclude: ^.*\.egg-info/
+repos:
+  - repo: https://github.com/instrumentl/pre-commit-just
+    rev: v0.1
+    hooks:
+      - id: format-justfile
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.3
+    hooks:
+      - id: uv-lock
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.23
+    hooks:
+      - id: validate-pyproject
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
