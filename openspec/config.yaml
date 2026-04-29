@@ -1,0 +1,42 @@
+schema: spec-driven
+
+context: |
+  `justfiles` is a shared library of `just` recipe modules consumed by every
+  repository in the kit-style ecosystem (umbrella, beholder, backoffice,
+  mtproto-kit, comprehender-common, telegram-client, tl-kit). Consumers
+  vendor it as a git submodule and `mod`-import the recipe modules they
+  need (`just`, `git`, `git-submodule`, `pre-commit`, `uv-workspace`, etc.).
+
+  ## Position relative to siblings
+
+    - This repository owns shared `just` recipe modules ONLY. It is the
+      common task-runner home; no consumer's runtime depends on its Python.
+    - When a recipe needs more than `bash` ergonomics (graph algorithms,
+      structured subprocess handling, multi-line commit-message templating,
+      fine-grained error handling), the implementation MAY ship as a
+      Python entry point inside this repository's `pyproject.toml` and the
+      recipe wraps `uv run <entry>` against it. The `cascade-pins` tool
+      (see the `cascade-pins` capability) is the first such tool.
+    - Library-tier rules (no project-tier imports, no NATS knowledge, no
+      project identifiers) apply: this repo MUST stay general-purpose;
+      anything that names a specific consuming product is a violation.
+
+  ## Distribution
+
+  Not published to any package index. Consumers vendor this repository
+  as a git submodule and either (a) `mod`-import recipe modules into their
+  `justfile`, or (b) `uv run` Python entry points exposed by the package.
+
+  ## Conventions
+
+    - Python toolchain: `uv` for environments and dependencies, `hatchling`
+      or `uv_build` for the build backend (whichever the existing pyproject
+      already declares — the spec is silent on the choice), `ruff`,
+      `mypy` (strict) for quality gates, `pre-commit` for local enforcement.
+    - Layout: `src/`-layout. Python floor `>= 3.12`.
+    - Workflow: OpenSpec-driven. All non-trivial changes go through
+      proposal → design → specs → tasks before implementation.
+    - Independence: this repository does not reference any parent
+      project, sibling consumer, or specific application. References to
+      general-purpose tools (`git`, `uv`, `just`, `hatchling`) and to
+      its own `pre-commit` configuration are permitted.
