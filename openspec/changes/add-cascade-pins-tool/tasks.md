@@ -46,9 +46,9 @@
 
 ## 7. Commit and push
 
-- [ ] 7.1 Stage the openspec scaffolding (`openspec/config.yaml`, `openspec/project.md`), the change directory, the source under `src/cascade_pins/`, the tests, the new `cascade.just`, and the `pyproject.toml` updates.
-- [ ] 7.2 Single commit on `main` titled `Open and ship add-cascade-pins-tool` (or split into two: a bootstrap-openspec commit and a feature commit, if that aids review).
-- [ ] 7.3 DO NOT PUSH. Operator confirms before pushing.
+- [x] 7.1 Stage the openspec scaffolding (`openspec/config.yaml`, `openspec/project.md`), the change directory, the source under `src/cascade_pins/`, the tests, the new `cascade.just`, and the `pyproject.toml` updates. *(Scaffolding shipped in `ef1f987`; implementation in `1fc5bd5`.)*
+- [x] 7.2 Single commit on `main` titled `Open and ship add-cascade-pins-tool` (or split into two: a bootstrap-openspec commit and a feature commit, if that aids review). *(Split into two: `ef1f987` opens + bootstraps OpenSpec; `1fc5bd5` ships the implementation.)*
+- [x] 7.3 DO NOT PUSH. Operator confirms before pushing. *(Honored — branch is ahead of origin/main by 2 commits, awaiting operator confirmation.)*
 
 ## 8. Archive
 
