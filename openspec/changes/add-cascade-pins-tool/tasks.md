@@ -1,48 +1,48 @@
 ## 1. OpenSpec scaffolding
 
-- [ ] 1.1 Confirm `openspec/config.yaml` exists with a `schema: spec-driven` line and a `context:` block describing `justfiles`'s role. (Authored as part of this change.)
-- [ ] 1.2 Confirm `openspec/project.md` exists and describes the repo's role, conventions, and independence rule.
-- [ ] 1.3 Confirm `openspec/changes/` and `openspec/specs/` directories exist (the latter empty until this change archives).
+- [x] 1.1 Confirm `openspec/config.yaml` exists with a `schema: spec-driven` line and a `context:` block describing `justfiles`'s role. (Authored as part of this change.)
+- [x] 1.2 Confirm `openspec/project.md` exists and describes the repo's role, conventions, and independence rule.
+- [x] 1.3 Confirm `openspec/changes/` and `openspec/specs/` directories exist (the latter empty until this change archives).
 
 ## 2. pyproject.toml updates
 
-- [ ] 2.1 Add a `[project.scripts]` table (or extend the existing one) with `cascade-pins = "cascade_pins.cli:main"`.
-- [ ] 2.2 Confirm the build backend's `packages` (or equivalent) source list includes `src/cascade_pins`. If the existing pyproject does not yet declare a `src/`-layout, add it now.
-- [ ] 2.3 Add a `dev` dependency on `pytest` and (optionally) `pytest-cov` if not already present.
-- [ ] 2.4 Add a runtime dependency on `typer` (or `click`) for the CLI; or use `argparse` from stdlib (decide in design.md). If using stdlib, no new dependency.
+- [x] 2.1 Add a `[project.scripts]` table (or extend the existing one) with `cascade-pins = "cascade_pins.cli:main"`.
+- [x] 2.2 Confirm the build backend's `packages` (or equivalent) source list includes `src/cascade_pins`. If the existing pyproject does not yet declare a `src/`-layout, add it now.
+- [x] 2.3 Add a `dev` dependency on `pytest` and (optionally) `pytest-cov` if not already present.
+- [x] 2.4 Add a runtime dependency on `typer` (or `click`) for the CLI; or use `argparse` from stdlib (decide in design.md). If using stdlib, no new dependency. *(Chose `argparse` from stdlib — no new runtime dependency.)*
 
 ## 3. Source modules — implement
 
-- [ ] 3.1 `src/cascade_pins/__init__.py` exposing `main` from `cli.py`.
-- [ ] 3.2 `src/cascade_pins/cli.py` with subcommands `plan`, `run`, `drift`, `status`. `run` accepts `--push`, `--no-uv-lock`, `--branch`, `--root`, `--dry-run`, `--message`.
-- [ ] 3.3 `src/cascade_pins/graph.py` parsing `git submodule status --recursive` and per-node `git rev-parse origin/<branch>` into a typed `Graph` data class with `nodes: list[Node]`, where `Node` carries `path`, `parent`, `pinned_sha`, `remote_sha`, `has_pyproject: bool`.
-- [ ] 3.4 `src/cascade_pins/plan.py` computing `Plan = list[Bump]` in topological (deepest-first) order, where `Bump` carries `(parent, child, old_sha, new_sha)` plus a `bundle_with` reference for sibling-bumps that share a parent commit.
-- [ ] 3.5 `src/cascade_pins/execute.py` running a plan: per parent, fetch+ff each bumped child, run `uv lock` if `has_pyproject`, conditionally stage `uv.lock`, stage submodule pointers, commit with templated message, push if `--push`. Bails on uv-lock conflicts and push rejections without rolling back prior commits in the run.
-- [ ] 3.6 `src/cascade_pins/git_ops.py` and `src/cascade_pins/uv_ops.py` — subprocess helpers wrapping `git` and `uv` invocations with structured `CompletedProcess` results, surfacing nonzero exits via typed exceptions.
-- [ ] 3.7 `src/cascade_pins/messages.py` — multi-line commit-message templating per design.md D5; reads `git log <old>..<new> --pretty=%s` from the bumped child and (best-effort) the child's `openspec/changes/archive/` directory listing to find newly-archived changes.
+- [x] 3.1 `src/cascade_pins/__init__.py` exposing `main` from `cli.py`.
+- [x] 3.2 `src/cascade_pins/cli.py` with subcommands `plan`, `run`, `drift`, `status`. `run` accepts `--push`, `--no-uv-lock`, `--branch`, `--root`, `--dry-run`, `--message`.
+- [x] 3.3 `src/cascade_pins/graph.py` parsing `git submodule status --recursive` and per-node `git rev-parse origin/<branch>` into a typed `Graph` data class with `nodes: list[Node]`, where `Node` carries `path`, `parent`, `pinned_sha`, `remote_sha`, `has_pyproject: bool`.
+- [x] 3.4 `src/cascade_pins/plan.py` computing `Plan = list[Bump]` in topological (deepest-first) order, where `Bump` carries `(parent, child, old_sha, new_sha)` plus a `bundle_with` reference for sibling-bumps that share a parent commit. *(Bundling exposed via `Plan.by_parent()` rather than a per-Bump reference field; semantics equivalent.)*
+- [x] 3.5 `src/cascade_pins/execute.py` running a plan: per parent, fetch+ff each bumped child, run `uv lock` if `has_pyproject`, conditionally stage `uv.lock`, stage submodule pointers, commit with templated message, push if `--push`. Bails on uv-lock conflicts and push rejections without rolling back prior commits in the run.
+- [x] 3.6 `src/cascade_pins/git_ops.py` and `src/cascade_pins/uv_ops.py` — subprocess helpers wrapping `git` and `uv` invocations with structured `CompletedProcess` results, surfacing nonzero exits via typed exceptions.
+- [x] 3.7 `src/cascade_pins/messages.py` — multi-line commit-message templating per design.md D5; reads `git log <old>..<new> --pretty=%s` from the bumped child and (best-effort) the child's `openspec/changes/archive/` directory listing to find newly-archived changes.
 
 ## 4. Tests
 
-- [ ] 4.1 `tests/test_graph.py` — parse synthetic `git submodule status --recursive` strings; assert correct `Graph` shape; cover edge cases (newly-uninitialised submodules with `-` prefix; modified submodules with `+` prefix; recursion depth ≥ 2).
-- [ ] 4.2 `tests/test_plan.py` — toposort over fixture graphs (linear, fan-out, fan-in); assert deepest-first ordering; assert sibling-bumps are bundled per parent.
-- [ ] 4.3 `tests/test_messages.py` — snapshot tests of templated commit messages for: single-subrepo bump with N upstream commits and M archived changes; multi-subrepo bump; bump with no upstream commits (no-op edge case).
-- [ ] 4.4 `tests/test_execute_e2e.py` — integration test with a tmp-dir fixture: `git init --bare` for three remote repos; `git clone` + `git submodule add` chain to wire grandparent → parent → child; commit changes in `child`; run `cascade-pins run`; assert parent and grandparent receive correct commits with correct SHAs and `uv.lock` files (where applicable). Use `pytest`'s `tmp_path` fixture.
-- [ ] 4.5 `tests/test_drift.py` — fixture graph with intentional drift (same-named submodule at two different SHAs); assert `cascade-pins drift` reports it and exits nonzero.
+- [x] 4.1 `tests/test_graph.py` — parse synthetic `git submodule status --recursive` strings; assert correct `Graph` shape; cover edge cases (newly-uninitialised submodules with `-` prefix; modified submodules with `+` prefix; recursion depth ≥ 2).
+- [x] 4.2 `tests/test_plan.py` — toposort over fixture graphs (linear, fan-out, fan-in); assert deepest-first ordering; assert sibling-bumps are bundled per parent.
+- [x] 4.3 `tests/test_messages.py` — snapshot tests of templated commit messages for: single-subrepo bump with N upstream commits and M archived changes; multi-subrepo bump; bump with no upstream commits (no-op edge case).
+- [x] 4.4 `tests/test_execute_e2e.py` — integration test with a tmp-dir fixture: `git init --bare` for three remote repos; `git clone` + `git submodule add` chain to wire grandparent → parent → child; commit changes in `child`; run `cascade-pins run`; assert parent and grandparent receive correct commits with correct SHAs and `uv.lock` files (where applicable). Use `pytest`'s `tmp_path` fixture. *(uv.lock branch covered by unit tests; e2e uses `no_uv_lock=True` to keep the test offline-safe.)*
+- [x] 4.5 `tests/test_drift.py` — fixture graph with intentional drift (same-named submodule at two different SHAs); assert `cascade-pins drift` reports it and exits nonzero.
 
 ## 5. cascade.just (shared recipe module)
 
-- [ ] 5.1 Author `cascade.just` exposing recipes per design.md D8: `cascade-plan`, `cascade *args`, `cascade-push`, `check-drift`. Each invokes `uv tool run --with file://{{ source_dir }}/.. cascade-pins ...`.
-- [ ] 5.2 Document the wrapper recipe's first-invocation cost (uv tool builds; subsequent runs are cached) in a comment above each recipe.
-- [ ] 5.3 Confirm consumers can `mod cascade 'justfiles/cascade.just'` without conflict against existing `mod git`, `mod git-submodule`, etc.
+- [x] 5.1 Author `cascade.just` exposing recipes per design.md D8: `cascade-plan`, `cascade *args`, `cascade-push`, `check-drift`. Each invokes `uv tool run --with file://{{ source_dir }}/.. cascade-pins ...`. *(Used `{{ source_dir }}` directly — `parent_directory(source_file())` resolves to `justfiles/` itself when consumers `mod`-import via `'justfiles/cascade.just'`.)*
+- [x] 5.2 Document the wrapper recipe's first-invocation cost (uv tool builds; subsequent runs are cached) in a comment above each recipe.
+- [x] 5.3 Confirm consumers can `mod cascade 'justfiles/cascade.just'` without conflict against existing `mod git`, `mod git-submodule`, etc.
 
 ## 6. Validation
 
-- [ ] 6.1 `openspec validate add-cascade-pins-tool --strict` passes.
-- [ ] 6.2 `openspec list` shows `add-cascade-pins-tool` as the sole active change.
-- [ ] 6.3 `pytest -q` passes; integration test runs in under 30 seconds.
-- [ ] 6.4 `ruff check` and `ruff format --check` pass on `src/cascade_pins/` and `tests/`.
-- [ ] 6.5 `mypy --strict src/cascade_pins/` passes.
-- [ ] 6.6 Smoke test: `uv run cascade-pins plan --root .` against the umbrella's working tree exits 0 and produces a graph view (no bumps if the tree is up-to-date).
+- [x] 6.1 `openspec validate add-cascade-pins-tool --strict` passes.
+- [x] 6.2 `openspec list` shows `add-cascade-pins-tool` as the sole active change.
+- [x] 6.3 `pytest -q` passes; integration test runs in under 30 seconds. *(19 tests pass; e2e test runs in ~1s.)*
+- [x] 6.4 `ruff check` and `ruff format --check` pass on `src/cascade_pins/` and `tests/`.
+- [x] 6.5 `mypy --strict src/cascade_pins/` passes.
+- [x] 6.6 Smoke test: `uv run cascade-pins plan --root .` against the umbrella's working tree exits 0 and produces a graph view (no bumps if the tree is up-to-date). *(`justfiles` has no submodules; tool prints "no bumps needed" and exits 0.)*
 
 ## 7. Commit and push
 
