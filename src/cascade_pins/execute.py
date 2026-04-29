@@ -30,6 +30,14 @@ def _relpath_under(parent_path: str, child_path: str) -> str:
     return child_path[len(parent_path) + 1 :]
 
 
+def _ensure_on_branch(repo: Path, branch: str) -> None:
+    """If `repo`'s HEAD is detached, switch to `branch` (creating it if needed)."""
+    r = git_ops.run_git(repo, "symbolic-ref", "--quiet", "HEAD", check=False)
+    if r.returncode == 0:
+        return
+    git_ops.run_git(repo, "checkout", branch)
+
+
 def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResult:
     root = Path(plan.root)
     by_path = graph.by_path()
@@ -49,10 +57,22 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
                 )
             resolved.append(replace(b, new_sha=target))
 
+        # Make sure the parent commits land on the configured branch, not a
+        # detached HEAD — otherwise a later `git push` from that nested
+        # checkout fails with "not currently on a branch".
+        _ensure_on_branch(parent_dir, graph.branch)
+
         for bump in resolved:
             child_dir = root / bump.child
+            if bump.child in new_shas:
+                # Propagated bump: we committed in this child earlier in the
+                # run, so its branch HEAD is already at the new SHA.
+                continue
             git_ops.fetch(child_dir)
-            git_ops.run_git(child_dir, "checkout", "--detach", bump.new_sha)
+            _ensure_on_branch(child_dir, graph.branch)
+            head = git_ops.run_git(child_dir, "rev-parse", "HEAD").stdout.strip()
+            if head != bump.new_sha:
+                git_ops.run_git(child_dir, "merge", "--ff-only", bump.new_sha)
 
         parent_node = by_path.get(parent_path) if parent_path else None
         if parent_node is not None:
@@ -83,7 +103,7 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
         new_shas[parent_path] = sha
 
         if opts.push:
-            git_ops.run_git(parent_dir, "push")
+            git_ops.run_git(parent_dir, "push", "origin", graph.branch)
             pushed.append(parent_path)
 
     return ExecuteResult(committed=committed, pushed=pushed)
