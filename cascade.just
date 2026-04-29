@@ -13,7 +13,7 @@ list: (just::list source_file)
 # Print the cascade plan (no side effects).
 [no-cd]
 cascade-plan *args:
-    uv tool run --with file://{{ source_dir }} cascade-pins plan {{ args }}
+    uv tool run --from file://{{ source_dir }} cascade-pins plan {{ args }}
 
 # First invocation builds the cascade-pins tool into uv's tool cache;
 # subsequent runs hit the cache.
@@ -21,7 +21,7 @@ cascade-plan *args:
 # Execute the cascade (commit pin bumps; opt into pushing via cascade-push).
 [no-cd]
 cascade *args:
-    uv tool run --with file://{{ source_dir }} cascade-pins run {{ args }}
+    uv tool run --from file://{{ source_dir }} cascade-pins run {{ args }}
 
 # First invocation builds the cascade-pins tool into uv's tool cache;
 # subsequent runs hit the cache.
@@ -29,7 +29,7 @@ cascade *args:
 # Execute the cascade and push each parent after its commit.
 [no-cd]
 cascade-push *args:
-    uv tool run --with file://{{ source_dir }} cascade-pins run --push {{ args }}
+    uv tool run --from file://{{ source_dir }} cascade-pins run --push {{ args }}
 
 # First invocation builds the cascade-pins tool into uv's tool cache;
 # subsequent runs hit the cache.
@@ -37,7 +37,7 @@ cascade-push *args:
 # Structured drift report across the recursive submodule graph.
 [no-cd]
 check-drift *args:
-    uv tool run --with file://{{ source_dir }} cascade-pins drift {{ args }}
+    uv tool run --from file://{{ source_dir }} cascade-pins drift {{ args }}
 
 # First invocation builds the cascade-pins tool into uv's tool cache;
 # subsequent runs hit the cache.
@@ -45,4 +45,4 @@ check-drift *args:
 # Show pinned vs. remote SHAs per node.
 [no-cd]
 cascade-status *args:
-    uv tool run --with file://{{ source_dir }} cascade-pins status {{ args }}
+    uv tool run --from file://{{ source_dir }} cascade-pins status {{ args }}
