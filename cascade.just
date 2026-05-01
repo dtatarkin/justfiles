@@ -7,42 +7,33 @@ source_dir := parent_directory(source_file)
 [default]
 list: (just::list source_file)
 
-# First invocation builds the cascade-pins tool into uv's tool cache;
-# subsequent runs hit the cache. Pass any extra cascade-pins flags as args.
+# `--refresh-package justfiles` forces uv to re-resolve and re-build the
+# tool from {{ source_dir }} on each invocation. Without it, uv keys its
+# cache on the package version (`0.1.0dev0`), so a submodule pin bump that
+# brings in new cascade-pins source would still hit the old cached archive.
+# Cost: ~1s rebuild (no runtime deps), paid by every cascade invocation.
 #
 # Print the cascade plan (no side effects).
 [no-cd]
 cascade-plan *args:
-    uv tool run --from file://{{ source_dir }} cascade-pins plan {{ args }}
+    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins plan {{ args }}
 
-# First invocation builds the cascade-pins tool into uv's tool cache;
-# subsequent runs hit the cache.
-#
 # Execute the cascade (commit pin bumps; opt into pushing via cascade-push).
 [no-cd]
 cascade *args:
-    uv tool run --from file://{{ source_dir }} cascade-pins run {{ args }}
+    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins run {{ args }}
 
-# First invocation builds the cascade-pins tool into uv's tool cache;
-# subsequent runs hit the cache.
-#
 # Execute the cascade and push each parent after its commit.
 [no-cd]
 cascade-push *args:
-    uv tool run --from file://{{ source_dir }} cascade-pins run --push {{ args }}
+    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins run --push {{ args }}
 
-# First invocation builds the cascade-pins tool into uv's tool cache;
-# subsequent runs hit the cache.
-#
 # Structured drift report across the recursive submodule graph.
 [no-cd]
 check-drift *args:
-    uv tool run --from file://{{ source_dir }} cascade-pins drift {{ args }}
+    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins drift {{ args }}
 
-# First invocation builds the cascade-pins tool into uv's tool cache;
-# subsequent runs hit the cache.
-#
 # Show pinned vs. remote SHAs per node.
 [no-cd]
 cascade-status *args:
-    uv tool run --from file://{{ source_dir }} cascade-pins status {{ args }}
+    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins status {{ args }}
