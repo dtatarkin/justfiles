@@ -36,6 +36,24 @@ def _ensure_on_branch(repo: Path, branch: str) -> None:
     git_ops.run_git(repo, "checkout", branch)
 
 
+def _fast_forward_to_origin(repo: Path, branch: str, label: str) -> None:
+    """Fetch and fast-forward `repo`'s `branch` to `origin/<branch>`.
+
+    Without this, the parent's `git push` at the end of an iteration races
+    against any concurrent push to origin and is rejected with "fetch first".
+    A non-fast-forward state aborts cleanly so the operator can resolve the
+    divergence rather than have cascade-pins guess.
+    """
+    git_ops.fetch(repo)
+    r = git_ops.run_git(repo, "merge", "--ff-only", f"origin/{branch}", check=False)
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"{label}: local branch {branch} is not a fast-forward of "
+            f"origin/{branch}. Resolve manually (git pull --rebase, or merge) "
+            f"and re-run cascade-pins."
+        )
+
+
 def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResult:
     root = Path(plan.root)
     by_path = graph.by_path()
@@ -59,6 +77,12 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
         # detached HEAD — otherwise a later `git push` from that nested
         # checkout fails with "not currently on a branch".
         _ensure_on_branch(parent_dir, graph.branch)
+
+        # Pull any concurrent origin work into the parent before we commit on
+        # it. Without this, push at the end of the iteration races and is
+        # rejected with "fetch first" whenever someone else has advanced
+        # origin between plan time and push time.
+        _fast_forward_to_origin(parent_dir, graph.branch, parent_path or "<root>")
 
         for bump in resolved:
             child_dir = root / bump.child
@@ -96,6 +120,18 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
             r = git_ops.run_git(parent_dir, "diff", "--quiet", "uv.lock", check=False)
             if r.returncode != 0:
                 git_ops.run_git(parent_dir, "add", "uv.lock")
+
+        # If origin already had every bump (e.g. a concurrent cascade-pins run
+        # pushed the same plan first and we just fast-forwarded into it), the
+        # index now matches HEAD — `git commit` would fail with "nothing to
+        # commit". Treat that as success and propagate the parent's HEAD SHA
+        # so deeper-up parents resolve correctly.
+        diff = git_ops.run_git(parent_dir, "diff", "--cached", "--quiet", check=False)
+        if diff.returncode == 0:
+            sha = git_ops.run_git(parent_dir, "rev-parse", "HEAD").stdout.strip()
+            committed.append((parent_path, sha))
+            new_shas[parent_path] = sha
+            continue
 
         msg = messages.render_commit_message(plan.root, resolved, summary=opts.message)
         git_ops.run_git(parent_dir, "commit", "-m", msg)

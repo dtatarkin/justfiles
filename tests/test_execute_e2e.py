@@ -137,3 +137,131 @@ def test_three_layer_cascade(tmp_path: Path, git_env: dict[str, str]) -> None:
     g2 = graph_mod.build_graph(grand, branch="main")
     p2 = plan_mod.compute_plan(g2)
     assert p2.bumps == ()
+
+
+def test_parent_ahead_of_origin_aborts_cleanly(tmp_path: Path, git_env: dict[str, str]) -> None:
+    """If the parent's local branch has diverged from origin (not a
+    fast-forward), cascade-pins must abort with a structured error rather
+    than commit and then fail at push time with `(fetch first)`.
+    """
+    bare = tmp_path / "bare"
+    for name in ("child", "parent"):
+        _init_bare(bare / f"{name}.git", env=git_env)
+
+    work = tmp_path / "work"
+    work.mkdir()
+
+    child = work / "child"
+    _run(["git", "clone", str(bare / "child.git"), str(child)], env=git_env)
+    (child / "README.md").write_text("hello\n")
+    _git(["add", "."], cwd=child, env=git_env)
+    _git(["commit", "-m", "init child"], cwd=child, env=git_env)
+    _git(["push", "origin", "main"], cwd=child, env=git_env)
+
+    parent = work / "parent"
+    _run(["git", "clone", str(bare / "parent.git"), str(parent)], env=git_env)
+    _add_submodule(parent, str(bare / "child.git"), "child", git_env)
+    _git(["commit", "-m", "init parent with child"], cwd=parent, env=git_env)
+    _git(["push", "origin", "main"], cwd=parent, env=git_env)
+
+    # Concurrent actor advances origin/main of the parent (a different
+    # commit, on the same branch, that the local parent doesn't know about).
+    other = work / "other-parent"
+    _run(["git", "clone", str(bare / "parent.git"), str(other)], env=git_env)
+    (other / "FEATURE.md").write_text("from elsewhere\n")
+    _git(["add", "."], cwd=other, env=git_env)
+    _git(["commit", "-m", "Concurrent commit elsewhere"], cwd=other, env=git_env)
+    _git(["push", "origin", "main"], cwd=other, env=git_env)
+
+    # Local parent makes a divergent commit (no merge base on top).
+    (parent / "LOCAL.md").write_text("local\n")
+    _git(["add", "."], cwd=parent, env=git_env)
+    _git(["commit", "-m", "Divergent local commit"], cwd=parent, env=git_env)
+
+    # Push a new child commit so the planner has something to bump.
+    upstream = work / "upstream-child"
+    _run(["git", "clone", str(bare / "child.git"), str(upstream)], env=git_env)
+    (upstream / "feature.txt").write_text("feature\n")
+    _git(["add", "."], cwd=upstream, env=git_env)
+    _git(["commit", "-m", "Add feature"], cwd=upstream, env=git_env)
+    _git(["push", "origin", "main"], cwd=upstream, env=git_env)
+
+    g = graph_mod.build_graph(parent, branch="main")
+    p = plan_mod.compute_plan(g)
+    assert p.bumps, "expected at least one bump for child"
+
+    with pytest.raises(RuntimeError, match="not a fast-forward"):
+        execute_mod.execute_plan(p, g, execute_mod.ExecuteOptions(no_uv_lock=True))
+
+
+def test_parent_already_synced_skips_commit(tmp_path: Path, git_env: dict[str, str]) -> None:
+    """If origin already has the bump (e.g. a concurrent cascade-pins run
+    pushed it first), cascade-pins must fast-forward into it and skip the
+    commit cleanly rather than fail with `nothing to commit`.
+    """
+    bare = tmp_path / "bare"
+    for name in ("child", "parent"):
+        _init_bare(bare / f"{name}.git", env=git_env)
+
+    work = tmp_path / "work"
+    work.mkdir()
+
+    child = work / "child"
+    _run(["git", "clone", str(bare / "child.git"), str(child)], env=git_env)
+    (child / "README.md").write_text("hello\n")
+    _git(["add", "."], cwd=child, env=git_env)
+    _git(["commit", "-m", "init child"], cwd=child, env=git_env)
+    _git(["push", "origin", "main"], cwd=child, env=git_env)
+
+    parent = work / "parent"
+    _run(["git", "clone", str(bare / "parent.git"), str(parent)], env=git_env)
+    _add_submodule(parent, str(bare / "child.git"), "child", git_env)
+    _git(["commit", "-m", "init parent with child"], cwd=parent, env=git_env)
+    _git(["push", "origin", "main"], cwd=parent, env=git_env)
+
+    # New child commit, pushed.
+    upstream = work / "upstream-child"
+    _run(["git", "clone", str(bare / "child.git"), str(upstream)], env=git_env)
+    (upstream / "feature.txt").write_text("feature\n")
+    _git(["add", "."], cwd=upstream, env=git_env)
+    _git(["commit", "-m", "Add feature"], cwd=upstream, env=git_env)
+    _git(["push", "origin", "main"], cwd=upstream, env=git_env)
+    new_child_sha = _git(["rev-parse", "HEAD"], cwd=upstream, env=git_env).strip()
+
+    # Concurrent actor already cascaded the bump into the parent and pushed.
+    sibling = work / "sibling-parent"
+    _run(["git", "clone", str(bare / "parent.git"), str(sibling)], env=git_env)
+    _git(
+        [
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "update",
+            "--init",
+            "--recursive",
+        ],
+        cwd=sibling,
+        env=git_env,
+    )
+    sibling_child = sibling / "child"
+    _git(["fetch", "origin", "main"], cwd=sibling_child, env=git_env)
+    _git(["checkout", "main"], cwd=sibling_child, env=git_env)
+    _git(["merge", "--ff-only", new_child_sha], cwd=sibling_child, env=git_env)
+    _git(["add", "child"], cwd=sibling, env=git_env)
+    _git(["commit", "-m", "Bump child (sibling cascade)"], cwd=sibling, env=git_env)
+    _git(["push", "origin", "main"], cwd=sibling, env=git_env)
+
+    g = graph_mod.build_graph(parent, branch="main")
+    p = plan_mod.compute_plan(g)
+    assert p.bumps, "expected at least one bump"
+
+    # Local parent runs the cascade. Origin already has the bump; we expect
+    # a clean fast-forward + skip rather than an error.
+    result = execute_mod.execute_plan(p, g, execute_mod.ExecuteOptions(no_uv_lock=True))
+    assert len(result.committed) == 1
+    parent_head = _git(["rev-parse", "HEAD"], cwd=parent, env=git_env).strip()
+    assert result.committed[0] == ("", parent_head)
+
+    # The parent's pin for child is at new_child_sha.
+    pin = _git(["ls-tree", "HEAD", "child"], cwd=parent, env=git_env)
+    assert pin.split()[2] == new_child_sha
