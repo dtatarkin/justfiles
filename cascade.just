@@ -7,33 +7,38 @@ source_dir := parent_directory(source_file)
 [default]
 list: (just::list source_file)
 
-# `--refresh-package justfiles` forces uv to re-resolve and re-build the
-# tool from {{ source_dir }} on each invocation. Without it, uv keys its
-# cache on the package version (`0.1.0dev0`), so a submodule pin bump that
-# brings in new cascade-pins source would still hit the old cached archive.
-# Cost: ~1s rebuild (no runtime deps), paid by every cascade invocation.
+# Run cascade-pins as a Python module straight from source via PYTHONPATH.
+# `uv tool run --from file://...` was rejected: uv hashes the wheel cache by
+# source path + package version (`0.1.0dev0`), so source edits land in a new
+# pin but uv still serves the old cached wheel from
+# `~/.cache/uv/sdists-v9/path/<path-hash>/.../justfiles-0.1.0.dev0.whl`. None
+# of --refresh-package, --reinstall-package, --reinstall, or --no-cache
+# invalidate it. Direct module invocation sidesteps the build/cache layer
+# entirely. cascade-pins has zero runtime deps, so PYTHONPATH alone is
+# sufficient. `uv run --no-project --python ">=3.12"` just guarantees a
+# 3.12+ interpreter without touching the calling project's environment.
 #
 # Print the cascade plan (no side effects).
 [no-cd]
 cascade-plan *args:
-    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins plan {{ args }}
+    PYTHONPATH={{ source_dir }}/src uv run --no-project --python ">=3.12" python -m cascade_pins plan {{ args }}
 
 # Execute the cascade (commit pin bumps; opt into pushing via cascade-push).
 [no-cd]
 cascade *args:
-    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins run {{ args }}
+    PYTHONPATH={{ source_dir }}/src uv run --no-project --python ">=3.12" python -m cascade_pins run {{ args }}
 
 # Execute the cascade and push each parent after its commit.
 [no-cd]
 cascade-push *args:
-    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins run --push {{ args }}
+    PYTHONPATH={{ source_dir }}/src uv run --no-project --python ">=3.12" python -m cascade_pins run --push {{ args }}
 
 # Structured drift report across the recursive submodule graph.
 [no-cd]
 check-drift *args:
-    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins drift {{ args }}
+    PYTHONPATH={{ source_dir }}/src uv run --no-project --python ">=3.12" python -m cascade_pins drift {{ args }}
 
 # Show pinned vs. remote SHAs per node.
 [no-cd]
 cascade-status *args:
-    uv tool run --refresh-package justfiles --from file://{{ source_dir }} cascade-pins status {{ args }}
+    PYTHONPATH={{ source_dir }}/src uv run --no-project --python ">=3.12" python -m cascade_pins status {{ args }}
