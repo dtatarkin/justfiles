@@ -88,7 +88,11 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
         rel_child_paths = [_relpath_under(parent_path, b.child) for b in resolved]
         git_ops.run_git(parent_dir, "add", *rel_child_paths)
 
-        if parent_has_pyproject and not opts.no_uv_lock:
+        # `parent_has_pyproject` does not imply a local uv.lock: workspace
+        # members have a pyproject.toml but the lockfile lives at the outer
+        # workspace root. Their `uv lock` invocation above updates that outer
+        # lockfile, which the outer parent's iteration stages on its own.
+        if parent_has_pyproject and not opts.no_uv_lock and (parent_dir / "uv.lock").is_file():
             r = git_ops.run_git(parent_dir, "diff", "--quiet", "uv.lock", check=False)
             if r.returncode != 0:
                 git_ops.run_git(parent_dir, "add", "uv.lock")
