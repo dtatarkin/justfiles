@@ -1,6 +1,6 @@
 # Project context
 
-`justfiles` is a shared library of `just` recipe modules consumed by every repository in the kit-style ecosystem. It started as a recipe-only repo (modules for `git`, `git-submodule`, `just`, `pre-commit`, `uv-workspace`) and is growing to host Python entry points for tasks where bash ergonomics break down — graph algorithms, structured subprocess handling, multi-line commit-message templating.
+`justfiles` is a general-purpose, shared library of `just` recipe modules. It started as a recipe-only repo (modules for `git`, `git-submodule`, `just`, `pre-commit`, `uv-workspace`) and is growing to host Python entry points for tasks where bash ergonomics break down — graph algorithms, structured subprocess handling, multi-line commit-message templating.
 
 ## Role and properties
 

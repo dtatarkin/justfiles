@@ -42,7 +42,7 @@
 - [x] 6.3 `pytest -q` passes; integration test runs in under 30 seconds. *(19 tests pass; e2e test runs in ~1s.)*
 - [x] 6.4 `ruff check` and `ruff format --check` pass on `src/cascade_pins/` and `tests/`.
 - [x] 6.5 `mypy --strict src/cascade_pins/` passes.
-- [x] 6.6 Smoke test: `uv run cascade-pins plan --root .` against the umbrella's working tree exits 0 and produces a graph view (no bumps if the tree is up-to-date). *(`justfiles` has no submodules; tool prints "no bumps needed" and exits 0.)*
+- [x] 6.6 Smoke test: `uv run cascade-pins plan --root .` against a consumer's working tree exits 0 and produces a graph view (no bumps if the tree is up-to-date). *(`justfiles` has no submodules; tool prints "no bumps needed" and exits 0.)*
 
 ## 7. Commit and push
 
@@ -58,7 +58,7 @@
 
 These tasks belong to follow-on changes in each consumer's OpenSpec root. Listed here for visibility only.
 
-- [ ] 9.1 (umbrella) Replace `just check-drift` body with a delegation to `cascade-pins drift`. Spec amendment to `repository-structure` if the requirement names the tool.
-- [ ] 9.2 (umbrella) Add `mod cascade 'justfiles/cascade.just'`. Optional `init` recipe extension to pre-warm `uv tool` cache for `cascade-pins`.
-- [ ] 9.3 (beholder, backoffice) Add `mod cascade 'justfiles/cascade.just'` for symmetric local cascade orchestration. Optional.
-- [ ] 9.4 (justfiles itself) Decide whether to switch from the umbrella's awk-based `check-drift` to `cascade-pins drift` as the canonical implementation. If yes, spec amendment in `cascade-pins` capability declaring the awk version retired.
+- [ ] 9.1 (root consumer) Replace any existing `just check-drift` body with a delegation to `cascade-pins drift`. Spec amendment to the consumer's repository-structure spec if the requirement names the tool.
+- [ ] 9.2 (root consumer) Add `mod cascade 'justfiles/cascade.just'`. Optional `init` recipe extension to pre-warm `uv tool` cache for `cascade-pins`.
+- [ ] 9.3 (intermediate parents) Add `mod cascade 'justfiles/cascade.just'` for symmetric local cascade orchestration. Optional.
+- [ ] 9.4 (justfiles itself) Decide whether to retire awk-based `check-drift` recipes in favour of `cascade-pins drift` as the canonical implementation. If yes, spec amendment in `cascade-pins` capability declaring the awk version retired.

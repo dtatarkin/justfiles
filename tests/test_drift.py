@@ -20,10 +20,10 @@ def test_drift_command_exits_nonzero_on_drift(monkeypatch, capsys) -> None:  # t
         root="/tmp/x",
         branch="main",
         nodes=(
-            _node("beholder", "aaa"),
-            _node("beholder/common", "111", parent="beholder"),
-            _node("backoffice", "bbb"),
-            _node("backoffice/common", "222", parent="backoffice"),
+            _node("parent-a", "aaa"),
+            _node("parent-a/common", "111", parent="parent-a"),
+            _node("parent-b", "bbb"),
+            _node("parent-b/common", "222", parent="parent-b"),
         ),
     )
 
@@ -46,10 +46,10 @@ def test_drift_command_exits_zero_when_clean(monkeypatch, capsys) -> None:  # ty
         root="/tmp/x",
         branch="main",
         nodes=(
-            _node("beholder", "aaa"),
-            _node("beholder/lib", "111", parent="beholder"),
-            _node("backoffice", "bbb"),
-            _node("backoffice/lib", "111", parent="backoffice"),
+            _node("parent-a", "aaa"),
+            _node("parent-a/lib", "111", parent="parent-a"),
+            _node("parent-b", "bbb"),
+            _node("parent-b/lib", "111", parent="parent-b"),
         ),
     )
     from cascade_pins import graph as graph_mod

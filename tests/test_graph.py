@@ -8,11 +8,11 @@ from cascade_pins.graph import (
 )
 
 SAMPLE_RECURSIVE = """\
- 8842d2110000000000000000000000000000000a beholder (heads/main)
- 11112222000000000000000000000000000000bb beholder/comprehender-common (heads/main)
-+22223333000000000000000000000000000000cc beholder/mtproto-kit (heads/main)
--33334444000000000000000000000000000000dd backoffice (heads/main)
- 44445555000000000000000000000000000000ee backoffice/comprehender-common (heads/main)
+ 8842d2110000000000000000000000000000000a parent-a (heads/main)
+ 11112222000000000000000000000000000000bb parent-a/lib-x (heads/main)
++22223333000000000000000000000000000000cc parent-a/lib-y (heads/main)
+-33334444000000000000000000000000000000dd parent-b (heads/main)
+ 44445555000000000000000000000000000000ee parent-b/lib-x (heads/main)
 """
 
 
@@ -20,19 +20,19 @@ def test_parse_submodule_status_extracts_all_nodes() -> None:
     parsed = parse_submodule_status(SAMPLE_RECURSIVE)
     paths = [p.path for p in parsed]
     assert paths == [
-        "beholder",
-        "beholder/comprehender-common",
-        "beholder/mtproto-kit",
-        "backoffice",
-        "backoffice/comprehender-common",
+        "parent-a",
+        "parent-a/lib-x",
+        "parent-a/lib-y",
+        "parent-b",
+        "parent-b/lib-x",
     ]
 
 
 def test_parse_submodule_status_captures_flags() -> None:
     parsed = {p.path: p for p in parse_submodule_status(SAMPLE_RECURSIVE)}
-    assert parsed["beholder"].flag == " "
-    assert parsed["beholder/mtproto-kit"].flag == "+"
-    assert parsed["backoffice"].flag == "-"
+    assert parsed["parent-a"].flag == " "
+    assert parsed["parent-a/lib-y"].flag == "+"
+    assert parsed["parent-b"].flag == "-"
 
 
 def test_parse_submodule_status_handles_no_describe() -> None:
@@ -72,15 +72,15 @@ def test_detect_drift_returns_groups_with_multiple_shas() -> None:
         root="/tmp/x",
         branch="main",
         nodes=(
-            _node("beholder", "aaa"),
-            _node("beholder/comprehender-common", "111", parent="beholder"),
-            _node("backoffice", "bbb"),
-            _node("backoffice/comprehender-common", "222", parent="backoffice"),
+            _node("parent-a", "aaa"),
+            _node("parent-a/lib-x", "111", parent="parent-a"),
+            _node("parent-b", "bbb"),
+            _node("parent-b/lib-x", "222", parent="parent-b"),
         ),
     )
     drift = detect_drift(g)
-    assert "comprehender-common" in drift
-    assert {n.pinned_sha for n in drift["comprehender-common"]} == {"111", "222"}
+    assert "lib-x" in drift
+    assert {n.pinned_sha for n in drift["lib-x"]} == {"111", "222"}
 
 
 def test_detect_drift_clean_graph_returns_empty() -> None:
@@ -88,10 +88,10 @@ def test_detect_drift_clean_graph_returns_empty() -> None:
         root="/tmp/x",
         branch="main",
         nodes=(
-            _node("beholder", "aaa"),
-            _node("beholder/lib", "111", parent="beholder"),
-            _node("backoffice", "bbb"),
-            _node("backoffice/lib", "111", parent="backoffice"),
+            _node("parent-a", "aaa"),
+            _node("parent-a/lib", "111", parent="parent-a"),
+            _node("parent-b", "bbb"),
+            _node("parent-b/lib", "111", parent="parent-b"),
         ),
     )
     assert detect_drift(g) == {}

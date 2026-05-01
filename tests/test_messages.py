@@ -30,21 +30,21 @@ def _stub_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_single_bump_with_subjects_and_archives() -> None:
     pytest.shared_stub.subjects = {  # type: ignore[attr-defined]
-        ("/tmp/g/beholder/common", "aaaaaaaaa", "bbbbbbbbb"): [
+        ("/tmp/g/parent-a/common", "aaaaaaaaa", "bbbbbbbbb"): [
             "Add new feature",
             "Fix bug",
         ]
     }
     pytest.shared_stub.archives = {  # type: ignore[attr-defined]
-        ("/tmp/g/beholder/common", "aaaaaaaaa", "bbbbbbbbb"): [
+        ("/tmp/g/parent-a/common", "aaaaaaaaa", "bbbbbbbbb"): [
             "change-A",
             "change-B",
         ]
     }
     bumps = [
         Bump(
-            parent="beholder",
-            child="beholder/common",
+            parent="parent-a",
+            child="parent-a/common",
             old_sha="aaaaaaaaa",
             new_sha="bbbbbbbbb",
         )

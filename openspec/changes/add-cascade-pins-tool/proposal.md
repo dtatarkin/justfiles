@@ -1,20 +1,20 @@
 ## Why
 
-Every architectural change in the consuming ecosystem (umbrella + its subrepos) ends with the same ritual: a subrepo gets a new commit, every parent that submodules it must (a) fast-forward its nested checkout, (b) re-lock its `uv.lock` if the parent has a `pyproject.toml`, (c) commit the pin bump (and lockfile if changed), (d) push, (e) the umbrella does the same for its top-level pins, (f) the operator runs `just check-drift` to confirm consistency. This sequence has played out dozens of times in the recent extraction work; each pass takes 5–15 minutes of operator time and is mechanically identical.
+Every architectural change in a recursive submodule ecosystem (a root repo with nested subrepos) ends with the same ritual: a subrepo gets a new commit, every parent that submodules it must (a) fast-forward its nested checkout, (b) re-lock its `uv.lock` if the parent has a `pyproject.toml`, (c) commit the pin bump (and lockfile if changed), (d) push, (e) the root does the same for its top-level pins, (f) the operator runs `just check-drift` to confirm consistency. Each pass takes 5–15 minutes of operator time and is mechanically identical.
 
-The umbrella `justfile`'s existing `check-drift` recipe is a single awk one-liner that reports drift but does not fix it. There is no recipe today that performs the cascade itself — operators chain shell commands by hand or copy them from each successful run.
+The conventional `check-drift` recipe is a single awk one-liner that reports drift but does not fix it. There is no recipe today that performs the cascade itself — operators chain shell commands by hand or copy them from each successful run.
 
 Three failure modes have shown up under hand-rolled cascades:
 
 1. **Forgotten `uv.lock`**: the operator stages the submodule pointer but forgets the lockfile change, requiring a follow-up commit.
 2. **Wrong order**: bumping a parent before its child has been pushed leaves the parent pinning a SHA the remote doesn't know.
-3. **Multi-subrepo bumps**: when several subrepos move in one round (e.g., the recent layer-tag + purify cascade), the operator manually composes a single bundled commit per parent — error-prone.
+3. **Multi-subrepo bumps**: when several subrepos move in one round, the operator manually composes a single bundled commit per parent — error-prone.
 
 A single Python tool removes all three by deriving the cascade plan from the actual graph state and executing it deterministically. The operator's remaining job is review (commit messages, push gate) and judgment (when to *initiate* the cascade); the rote work disappears.
 
 `bash` was considered and rejected: the cascade plan requires a topological sort over a multi-parent graph, conditional `uv.lock` staging, structured commit-message bodies, and graceful handling of `uv lock` conflicts and push rejections. Each of these is awkward in `bash` and natural in Python. The break-even point is the toposort — once you need it, Python wins on every other axis.
 
-The tool ships in `justfiles` because every consumer in the ecosystem already vendors `justfiles` as a submodule. Hosting `cascade-pins` here means a single implementation is reachable from any working directory in the recursive tree (umbrella, beholder, backoffice, etc.), via `uv run cascade-pins ...` once the consumer's `uv` environment is synced.
+The tool ships in `justfiles` because consumers already vendor `justfiles` as a submodule. Hosting `cascade-pins` here means a single implementation is reachable from any working directory in the recursive tree (root, parent, child, etc.), via `uv run cascade-pins ...` once the consumer's `uv` environment is synced.
 
 This is also `justfiles`'s first OpenSpec change. Establishing the OpenSpec root here is a low-cost side effect.
 
@@ -32,7 +32,7 @@ This is also `justfiles`'s first OpenSpec change. Establishing the OpenSpec root
 - Wire `pyproject.toml`: add `cascade_pins` package to `[tool.hatch.build.targets.wheel].packages` (or equivalent for the existing build backend), add `[project.scripts] cascade-pins = "cascade_pins.cli:main"`, ensure `uv run cascade-pins ...` works in any consumer's venv that has `justfiles` installed (which today happens via no mechanism; see Decisions for the resolution).
 - Add `cascade.just` shared recipe module exposing `cascade-plan`, `cascade`, `cascade-push`, and a replacement `check-drift` (delegates to the Python implementation). Consumers `mod`-import `'justfiles/cascade.just'` to pick up these recipes.
 - Add tests under `tests/`: unit tests for graph parsing, toposort, and message templating; an integration test that sets up a synthetic 3-node multi-repo fixture in a tmpdir (using `git init --bare` for remotes) and exercises a full cascade run.
-- Update the umbrella `justfile`'s `check-drift` recipe to delegate to `cascade-pins drift` (preserving the operator-visible behaviour while gaining structured output). This is a NON-MANDATORY follow-up — out of scope for this change, but documented as a follow-on opportunity.
+- Update consumers' `justfile` `check-drift` recipes to delegate to `cascade-pins drift` (preserving the operator-visible behaviour while gaining structured output). This is a NON-MANDATORY follow-up — out of scope for this change, but documented as a follow-on opportunity.
 
 ## Capabilities
 

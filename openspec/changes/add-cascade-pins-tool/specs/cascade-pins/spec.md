@@ -50,17 +50,17 @@ The graph SHALL be acyclic by construction (git submodule semantics enforce this
 
 #### Scenario: leaf-first ordering
 
-- **GIVEN** a graph with three layers (umbrella → beholder → comprehender-common) where `comprehender-common` has unpushed commits
+- **GIVEN** a graph with three layers (root → parent-a → lib-x) where `lib-x` has unpushed commits
 - **WHEN** `cascade-pins run --push` executes
-- **THEN** `comprehender-common`'s push happens first
-- **AND** `beholder`'s pin-bump commit and push happen next
-- **AND** `umbrella`'s pin-bump commit and push happen last
+- **THEN** `lib-x`'s push happens first
+- **AND** `parent-a`'s pin-bump commit and push happen next
+- **AND** the root's pin-bump commit and push happen last
 
 #### Scenario: sibling bumps bundled in one parent commit
 
-- **GIVEN** `beholder` has TWO outdated children (`mtproto-kit` and `comprehender-common`)
+- **GIVEN** `parent-a` has TWO outdated children (`lib-x` and `lib-y`)
 - **WHEN** `cascade-pins run` executes
-- **THEN** `beholder` receives exactly ONE commit that bumps both children's pins
+- **THEN** `parent-a` receives exactly ONE commit that bumps both children's pins
 - **AND** the commit's message body lists both children's old/new SHA prefixes
 
 ### Requirement: Conditional uv.lock handling
@@ -114,9 +114,9 @@ When a parent has a `pyproject.toml` and `--no-uv-lock` is not set, `cascade-pin
 
 #### Scenario: same-name submodule at two different SHAs
 
-- **GIVEN** a graph where `comprehender-common` appears as a nested submodule of both `beholder` and `backoffice` at different pinned SHAs
+- **GIVEN** a graph where `lib-x` appears as a nested submodule of both `parent-a` and `parent-b` at different pinned SHAs
 - **WHEN** `cascade-pins drift` runs
-- **THEN** the tool prints a structured report listing `comprehender-common` with both SHAs and both parent paths
+- **THEN** the tool prints a structured report listing `lib-x` with both SHAs and both parent paths
 - **AND** exits nonzero
 
 #### Scenario: clean graph
@@ -147,7 +147,7 @@ The operator MAY override the templated body via `cascade-pins run --message "..
 
 ### Requirement: Out-of-scope behaviour
 
-`cascade-pins` SHALL NOT perform server-side automation, auto-merge `uv.lock` conflicts, rebase or rewrite commit history, run cross-repo CI orchestration, or replace the umbrella's `just status` recipe (which surfaces a different view: pinned vs. local SHAs, not pinned vs. remote-main SHAs).
+`cascade-pins` SHALL NOT perform server-side automation, auto-merge `uv.lock` conflicts, rebase or rewrite commit history, run cross-repo CI orchestration, or replace existing `just status` recipes (which surface a different view: pinned vs. local SHAs, not pinned vs. remote-main SHAs).
 
 #### Scenario: tool refuses to rewrite history
 

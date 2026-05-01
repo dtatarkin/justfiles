@@ -1,11 +1,10 @@
 schema: spec-driven
 
 context: |
-  `justfiles` is a shared library of `just` recipe modules consumed by every
-  repository in the kit-style ecosystem (umbrella, beholder, backoffice,
-  mtproto-kit, comprehender-common, telegram-client, tl-kit). Consumers
-  vendor it as a git submodule and `mod`-import the recipe modules they
-  need (`just`, `git`, `git-submodule`, `pre-commit`, `uv-workspace`, etc.).
+  `justfiles` is a general-purpose, shared library of `just` recipe modules.
+  Consumers vendor it as a git submodule and `mod`-import the recipe modules
+  they need (`just`, `git`, `git-submodule`, `pre-commit`, `uv-workspace`,
+  etc.).
 
   ## Position relative to siblings
 

@@ -1,6 +1,6 @@
 ## Context
 
-The recursive submodule cascade is the dominant operator overhead in the kit-style ecosystem. Every roadmap step in the recent telegram-client extraction has produced a cascade — sometimes spanning four repos (umbrella, beholder, backoffice, plus 1–2 nested library updates). The mechanical shape is invariant:
+The recursive submodule cascade is the dominant operator overhead when working across a tree of nested submodules. Each roadmap step that touches a deep subrepo can produce a cascade spanning multiple repos (a root, one or more parents, plus 1–2 nested library updates). The mechanical shape is invariant:
 
 ```
    1. push the moved subrepo(s) to origin
@@ -11,7 +11,7 @@ The recursive submodule cascade is the dominant operator overhead in the kit-sty
         d. commit parent with a message naming the moved subrepos
         e. push parent if --push
    3. cascade up: same loop where the parent becomes a moved subrepo and
-      its parent (the umbrella, typically) becomes the new parent
+      its own parent (the root, typically) becomes the new parent
    4. run check-drift; bail if anything is inconsistent
 ```
 
@@ -22,11 +22,11 @@ The variance is entirely in step 2c's commit message body and the operator's cho
 **Goals:**
 
 - A single command (`just cascade`) replaces the multi-step hand cascade.
-- The tool is callable from any node in the recursive submodule tree (umbrella, beholder, backoffice, …) and walks downward from there, computing the local view of outdated pins.
+- The tool is callable from any node in the recursive submodule tree (root, parent, child, …) and walks downward from there, computing the local view of outdated pins.
 - The operator retains the push gate by default. `--push` is opt-in.
 - Idempotent: a second `cascade run` after a successful one is a no-op.
 - Failures (uv lock conflict, push rejection, network errors) surface verbatim and leave the working tree in a recoverable state — never half-committed across multiple parents.
-- Drift detection becomes a first-class subcommand with structured output, replacing the umbrella's `awk` one-liner as the canonical drift check.
+- Drift detection becomes a first-class subcommand with structured output, replacing the conventional `awk` one-liner as the canonical drift check.
 - `justfiles` becomes the OpenSpec home for this and any future shared Python tooling.
 
 **Non-Goals:**
@@ -35,7 +35,7 @@ The variance is entirely in step 2c's commit message body and the operator's cho
 - Auto-rebase or auto-merge of `uv.lock` conflicts. The tool surfaces and bails.
 - Cross-repo CI orchestration. Each consumer's CI continues to run independently.
 - Squash, fixup, or rewrite of commit history. Each cascade produces fresh commits.
-- Replacing the umbrella's `just status` recipe (it does a different thing — show pinned vs. local SHAs; cascade-pins compares pinned vs. remote-main).
+- Replacing existing `just status` recipes (they show pinned vs. local SHAs; cascade-pins compares pinned vs. remote-main — a different view).
 
 ## Decisions
 
@@ -46,7 +46,7 @@ The variance is entirely in step 2c's commit message body and the operator's cho
    cascade-pins run [--push]            Execute: fetch+ff, uv lock, commit per
                                         parent. --push pushes after each commit.
    cascade-pins drift                   Structured drift report. Replaces the
-                                        umbrella's awk-based check-drift.
+                                        conventional awk-based check-drift.
    cascade-pins status                  Graph view: per-node pinned vs. remote
                                         SHA, with archived-since-pin OpenSpec
                                         change names.
@@ -65,7 +65,7 @@ Common flags:
 
 ### D2. Graph construction
 
-Source: `git submodule status --recursive` (already called by the umbrella's existing recipes). Each line yields `(pinned_sha, path, branch_or_tag)`. The script then runs `git -C <path> rev-parse origin/<branch>` (after a quick `git -C <path> fetch --quiet`) for each node to learn the remote `main` head.
+Source: `git submodule status --recursive` (already called by the existing `git-submodule.just` recipes). Each line yields `(pinned_sha, path, branch_or_tag)`. The script then runs `git -C <path> rev-parse origin/<branch>` (after a quick `git -C <path> fetch --quiet`) for each node to learn the remote `main` head.
 
 The graph is a tree (each submodule has exactly one parent in any given checkout); no cycle handling needed. Toposort is a simple depth-first post-order traversal.
 
@@ -80,7 +80,7 @@ Bumping a parent's pin to a SHA that origin doesn't know yet produces a broken s
                         they fast-forward and bump.
    layer N-1:           parents of layer N. Same.
    …
-   layer 0 (root):      umbrella. Last.
+   layer 0 (root):      the top-level repo. Last.
 ```
 
 The script computes layers as DFS-post-order on the graph; subrepos at the same layer can be processed in any order (they have no dependency on each other).
@@ -93,7 +93,7 @@ After bumping a parent's submodule pointer:
 - If `uv.lock` changed (`git diff --quiet uv.lock` returns nonzero), stage it.
 - If `uv lock` exits nonzero (conflict or unsatisfiable), bail with the error message; do NOT stage anything; leave the working tree dirty for operator inspection.
 
-The recent extraction work has shown that many cascades have `uv.lock` no-ops (spec-only changes don't move package metadata). The conditional stage avoids spurious "no-op" lockfile commits.
+Many cascades produce `uv.lock` no-ops (spec-only changes don't move package metadata). The conditional stage avoids spurious "no-op" lockfile commits.
 
 ### D5. Commit message templating
 
@@ -118,7 +118,7 @@ The first line ("Bump … pins …") is always synthesised; the body is informat
 
 **Alternatives considered:**
 
-- *No body* (just the first line). Rejected: the recent cascade history shows operators frequently want to know "what archived changes did this pin actually carry?" — synthesising it removes a manual git-log step.
+- *No body* (just the first line). Rejected: operators frequently want to know "what archived changes did this pin actually carry?" — synthesising it removes a manual git-log step.
 - *Conventional Commits format*. Out of scope; this is internal-only and our convention is descriptive single-line summaries with prose bodies.
 
 ### D6. Push gate
@@ -129,7 +129,7 @@ Default: `cascade-pins run` commits but does not push. Output ends with `to push
 
 **Alternatives considered:**
 
-- *Always push*. Rejected: the project convention is operator-gated pushes.
+- *Always push*. Rejected: convention is operator-gated pushes.
 - *Push only the leaf children, not parents*. Rejected: makes parent commits effectively dead until manually pushed.
 
 ### D7. Idempotency
@@ -142,10 +142,10 @@ A run interrupted mid-execution (e.g., uv lock conflict at parent N out of M) le
 
 `justfiles` is currently a recipe-only submodule. To make `cascade-pins` invokable from a consumer's venv, two paths:
 
-1. Each consumer adds `justfiles` to `[tool.uv.workspace] members` and `[project] dependencies`. Tool becomes available as `uv run cascade-pins`. Cost: one more workspace member per consumer; affects the umbrella's `repository-structure` spec (which enumerates members for beholder and backoffice — those would gain `justfiles`).
+1. Each consumer adds `justfiles` to `[tool.uv.workspace] members` and `[project] dependencies`. Tool becomes available as `uv run cascade-pins`. Cost: one more workspace member per consumer; consumers whose own specs enumerate workspace members would need an amendment.
 2. The recipes use `uv tool run --with file:./justfiles cascade-pins` (or a similar `uv tool install` step in `init`). Tool runs in its own ephemeral venv; consumers' workspaces are unchanged.
 
-This change adopts (2). Rationale: keeps consumer pyprojects untouched; mirrors how `pre-commit` hooks already invoke tools without forcing them into the workspace; the umbrella's `repository-structure` spec needs no amendment.
+This change adopts (2). Rationale: keeps consumer pyprojects untouched; mirrors how `pre-commit` hooks already invoke tools without forcing them into the workspace; consumers' workspace specs need no amendment.
 
 The recipes in `cascade.just` look like:
 
@@ -166,18 +166,18 @@ cascade *args:
 
 ### D9. Drift detection becomes structured
 
-Today's umbrella `check-drift` (an `awk` one-liner) prints `DRIFT: name — sha1 vs sha2` lines and exits nonzero. `cascade-pins drift` produces:
+A conventional `check-drift` (an `awk` one-liner) prints `DRIFT: name — sha1 vs sha2` lines and exits nonzero. `cascade-pins drift` produces:
 
 ```
    drift detected (3 names)
-     comprehender-common  (2 SHAs)
-       8842d21  → ./beholder/comprehender-common/
-       01c2844  → ./backoffice/comprehender-common/
-     telegram-client      (2 SHAs)
+     lib-x  (2 SHAs)
+       8842d21  → ./parent-a/lib-x/
+       01c2844  → ./parent-b/lib-x/
+     lib-y      (2 SHAs)
        …
 ```
 
-Plus exit status. The recipe `check-drift` (in `cascade.just`) wraps `cascade-pins drift`. The umbrella's existing `check-drift` (awk) can switch to delegating once cascade-pins is available; that switch is a separate, optional follow-up.
+Plus exit status. The recipe `check-drift` (in `cascade.just`) wraps `cascade-pins drift`. Existing awk-based `check-drift` recipes in consumers can switch to delegating once cascade-pins is available; that switch is a separate, optional follow-up.
 
 ### D10. Test strategy
 
@@ -190,7 +190,7 @@ Plus exit status. The recipe `check-drift` (in `cascade.just`) wraps `cascade-pi
 `justfiles` had no `openspec/` until this change. We bootstrap it with:
 
 - `openspec/config.yaml` carrying a `context:` block describing the repo's role.
-- `openspec/project.md` mirroring the format used by sibling library repos (`comprehender-common`, `mtproto-kit`, `telegram-client`).
+- `openspec/project.md` describing this repo's role and conventions.
 - This change directory itself.
 
 After archive, `openspec/specs/cascade-pins/` becomes the first promoted capability spec.
