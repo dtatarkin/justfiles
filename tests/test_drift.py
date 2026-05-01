@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from cascade_pins.cli import main
 from cascade_pins.graph import Graph, Node
 
