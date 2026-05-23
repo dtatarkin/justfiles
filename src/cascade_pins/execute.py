@@ -133,7 +133,7 @@ def execute_plan(plan: Plan, graph: Graph, opts: ExecuteOptions) -> ExecuteResul
             new_shas[parent_path] = sha
             continue
 
-        msg = messages.render_commit_message(plan.root, resolved, summary=opts.message)
+        msg = messages.render_commit_message(plan.root, resolved, message=opts.message)
         git_ops.run_git(parent_dir, "commit", "-m", msg)
 
         sha = git_ops.run_git(parent_dir, "rev-parse", "HEAD").stdout.strip()

@@ -89,11 +89,39 @@ def test_no_archives_omits_archived_section(stub: _Stub) -> None:
     assert "  Open change-X proposal" in msg
 
 
-def test_summary_appended_to_first_line(stub: _Stub) -> None:
+def test_message_appended_to_first_line(stub: _Stub) -> None:
     bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
-    msg = render_commit_message("/tmp/g", bumps, summary="post-archive cascade")
+    msg = render_commit_message("/tmp/g", bumps, message="post-archive cascade")
     first = msg.splitlines()[0]
     assert first == "Bump lib pins: post-archive cascade"
+
+
+def test_multiline_message_overrides_body(stub: _Stub) -> None:
+    stub.subjects = {("/tmp/g/lib", "aaa", "bbb"): ["Auto subject"]}
+    bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
+    msg = render_commit_message("/tmp/g", bumps, message="Manual line 1\nManual line 2")
+    assert msg.startswith("Bump lib pins\n")
+    assert "Manual line 1" in msg
+    assert "Manual line 2" in msg
+    assert "Auto subject" not in msg
+
+
+def test_message_with_recognised_prefix_replaces_first_line(stub: _Stub) -> None:
+    bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
+    msg = render_commit_message("/tmp/g", bumps, message="Bump everything: custom reason")
+    first = msg.splitlines()[0]
+    assert first == "Bump everything: custom reason"
+    assert "Bump lib pins" not in msg
+
+
+def test_prefix_message_with_body(stub: _Stub) -> None:
+    bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
+    msg = render_commit_message(
+        "/tmp/g", bumps, message="Bump custom first line\n\nCustom body here"
+    )
+    first = msg.splitlines()[0]
+    assert first == "Bump custom first line"
+    assert "Custom body here" in msg
 
 
 def test_empty_bumps_raises() -> None:

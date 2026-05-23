@@ -65,6 +65,21 @@ def _parent_of(path: str, all_paths: set[str]) -> str | None:
     return max(candidates, key=lambda p: len(p))
 
 
+def _detect_cycles(nodes: list[Node]) -> None:
+    by_path = {n.path: n for n in nodes}
+    for node in nodes:
+        visited: set[str] = set()
+        current: str | None = node.path
+        while current is not None:
+            if current in visited:
+                raise RuntimeError(f"cycle detected at {current}")
+            visited.add(current)
+            parent_node = by_path.get(current)
+            if parent_node is None:
+                break
+            current = parent_node.parent
+
+
 def build_graph(
     root: str | Path,
     branch: str = "main",
@@ -112,6 +127,7 @@ def build_graph(
                 remote_ahead=remote_ahead,
             )
         )
+    _detect_cycles(nodes)
     return Graph(root=root_abs, branch=branch, nodes=tuple(nodes))
 
 

@@ -1,6 +1,9 @@
+import pytest
+
 from cascade_pins.graph import (
     Graph,
     Node,
+    _detect_cycles,
     detect_drift,
     parse_submodule_status,
 )
@@ -79,6 +82,25 @@ def test_detect_drift_returns_groups_with_multiple_shas() -> None:
     drift = detect_drift(g)
     assert "lib-x" in drift
     assert {n.pinned_sha for n in drift["lib-x"]} == {"111", "222"}
+
+
+def test_detect_cycles_raises_on_cycle() -> None:
+    nodes = [
+        _node("a", "aaa", parent="b"),
+        _node("b", "bbb", parent="a"),
+    ]
+    with pytest.raises(RuntimeError, match="cycle detected at"):
+        _detect_cycles(nodes)
+
+
+def test_detect_cycles_passes_for_acyclic() -> None:
+    nodes = [
+        _node("parent-a", "aaa"),
+        _node("parent-a/lib-x", "111", parent="parent-a"),
+        _node("parent-b", "bbb"),
+        _node("parent-b/lib-x", "222", parent="parent-b"),
+    ]
+    _detect_cycles(nodes)
 
 
 def test_detect_drift_clean_graph_returns_empty() -> None:

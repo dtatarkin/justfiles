@@ -13,18 +13,33 @@ def _short(sha: str, n: int = 7) -> str:
     return sha[:n] if _SHA_RE.match(sha) else sha
 
 
+_FIRST_LINE_PREFIXES = ("Bump ",)
+
+
 def render_commit_message(
     graph_root: str | Path,
     bumps: Sequence[Bump],
     *,
-    summary: str | None = None,
+    message: str | None = None,
 ) -> str:
     if not bumps:
         raise ValueError("render_commit_message requires at least one bump")
     names = [basename(b.child) for b in bumps]
     first = "Bump " + ", ".join(names) + " pins"
-    if summary:
-        first = first + ": " + summary
+
+    if message is not None:
+        if any(message.startswith(pfx) for pfx in _FIRST_LINE_PREFIXES):
+            lines = message.split("\n", 1)
+            first = lines[0]
+            if len(lines) > 1 and lines[1].strip():
+                return first + "\n\n" + lines[1].strip() + "\n"
+            return first + "\n"
+
+        if "\n" in message:
+            return first + "\n\n" + message.strip() + "\n"
+
+        first = first + ": " + message
+
     body: list[str] = []
     for bump in bumps:
         child_dir = Path(graph_root) / bump.child
