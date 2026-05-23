@@ -7,33 +7,37 @@ from cascade_pins.messages import render_commit_message
 from cascade_pins.plan import Bump
 
 
-@pytest.fixture(autouse=True)
-def _stub_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Replace _subjects_between and _archived_changes by patchable doubles."""
+class _Stub:
+    subjects: dict[tuple[str, str, str], list[str]]
+    archives: dict[tuple[str, str, str], list[str]]
 
-    class _Stub:
-        subjects: dict[tuple[str, str, str], list[str]] = {}
-        archives: dict[tuple[str, str, str], list[str]] = {}
+
+@pytest.fixture
+def stub(monkeypatch: pytest.MonkeyPatch) -> _Stub:
+    """Replace _subjects_between and _archived_changes by patchable doubles."""
+    s = _Stub()
+    s.subjects = {}
+    s.archives = {}
 
     def fake_subjects(child_dir: Path, old: str, new: str) -> list[str]:
-        return _Stub.subjects.get((str(child_dir), old, new), [])
+        return s.subjects.get((str(child_dir), old, new), [])
 
     def fake_archives(child_dir: Path, old: str, new: str) -> list[str]:
-        return _Stub.archives.get((str(child_dir), old, new), [])
+        return s.archives.get((str(child_dir), old, new), [])
 
     monkeypatch.setattr(messages_mod, "_subjects_between", fake_subjects)
     monkeypatch.setattr(messages_mod, "_archived_changes", fake_archives)
-    pytest.shared_stub = _Stub  # type: ignore[attr-defined]
+    return s
 
 
-def test_single_bump_with_subjects_and_archives() -> None:
-    pytest.shared_stub.subjects = {  # type: ignore[attr-defined]
+def test_single_bump_with_subjects_and_archives(stub: _Stub) -> None:
+    stub.subjects = {
         ("/tmp/g/parent-a/common", "aaaaaaaaa", "bbbbbbbbb"): [
             "Add new feature",
             "Fix bug",
         ]
     }
-    pytest.shared_stub.archives = {  # type: ignore[attr-defined]
+    stub.archives = {
         ("/tmp/g/parent-a/common", "aaaaaaaaa", "bbbbbbbbb"): [
             "change-A",
             "change-B",
@@ -55,9 +59,7 @@ def test_single_bump_with_subjects_and_archives() -> None:
     assert "  (archived: change-A, change-B)" in msg
 
 
-def test_multi_subrepo_bump_lists_each_child() -> None:
-    pytest.shared_stub.subjects = {}  # type: ignore[attr-defined]
-    pytest.shared_stub.archives = {}  # type: ignore[attr-defined]
+def test_multi_subrepo_bump_lists_each_child(stub: _Stub) -> None:
     bumps = [
         Bump(
             parent="root",
@@ -78,22 +80,16 @@ def test_multi_subrepo_bump_lists_each_child() -> None:
     assert "lib2 @ ccccccc..ddddddd" in msg
 
 
-def test_no_archives_omits_archived_section() -> None:
-    pytest.shared_stub.subjects = {  # type: ignore[attr-defined]
-        ("/tmp/g/lib", "aaa", "bbb"): ["Open change-X proposal"]
-    }
-    pytest.shared_stub.archives = {  # type: ignore[attr-defined]
-        ("/tmp/g/lib", "aaa", "bbb"): []
-    }
+def test_no_archives_omits_archived_section(stub: _Stub) -> None:
+    stub.subjects = {("/tmp/g/lib", "aaa", "bbb"): ["Open change-X proposal"]}
+    stub.archives = {("/tmp/g/lib", "aaa", "bbb"): []}
     bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
     msg = render_commit_message("/tmp/g", bumps)
     assert "(archived:" not in msg
     assert "  Open change-X proposal" in msg
 
 
-def test_summary_appended_to_first_line() -> None:
-    pytest.shared_stub.subjects = {}  # type: ignore[attr-defined]
-    pytest.shared_stub.archives = {}  # type: ignore[attr-defined]
+def test_summary_appended_to_first_line(stub: _Stub) -> None:
     bumps = [Bump(parent="", child="lib", old_sha="aaa", new_sha="bbb")]
     msg = render_commit_message("/tmp/g", bumps, summary="post-archive cascade")
     first = msg.splitlines()[0]

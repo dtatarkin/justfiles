@@ -62,7 +62,7 @@ def _parent_of(path: str, all_paths: set[str]) -> str | None:
     candidates = [p for p in all_paths if p != path and path.startswith(p + "/")]
     if not candidates:
         return None
-    return max(candidates, key=len)
+    return max(candidates, key=lambda p: len(p))
 
 
 def build_graph(
