@@ -52,4 +52,3 @@ This requirement is scoped to first-party source. `justfiles` is general-purpose
 - **THEN** this requirement is NOT considered violated for `justfiles`
 - **AND** the responsibility for cleaning the consumer's first-party tree lies with that consumer's own repository policy (each one has its own equivalent OpenSpec change or non-OpenSpec cleanup PR)
 - **AND** when this repository publishes a clean SHA, downstream consumers SHALL bump their pin (a non-OpenSpec activity tracked via the cascade-pins recipes)
-

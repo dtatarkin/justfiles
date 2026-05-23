@@ -14,5 +14,12 @@ list: (just::list source_file)
 run *args:
     uv run {{ args }}
 
+# Run tests with pytest
+test *args:
+    just run pytest {{ args }}
+
 # Run pre-commit hooks for all files
 lint: pre-commit::run
+
+push *args:
+    git push {{ args }}
