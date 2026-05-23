@@ -76,3 +76,8 @@ pull *args:
 [no-cd]
 push *args:
     git submodule foreach --recursive "git push {{ args }}; echo"
+
+# Checkout the default branch in all submodules recursively
+[no-cd]
+checkout-default:
+    git submodule foreach --recursive 'default=$(git symbolic-ref refs/remotes/origin/HEAD | sed "s@refs/remotes/origin/@@"); git checkout "$default"'
