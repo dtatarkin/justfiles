@@ -39,7 +39,7 @@ push *args:
 # Pull with submodule check
 [no-cd]
 pull *args:
-    git pull --all --jobs 2 --tags --recurse-submodules --ff-only {{ args }}
+    git pull --all --jobs 2 --tags --ff-only {{ args }}
 
 # Add a new git worktree for the given commit-ish
 [no-cd]
