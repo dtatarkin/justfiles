@@ -15,8 +15,7 @@ run *args:
     uv run {{ args }}
 
 [doc("Run tests with pytest")]
-test *args:
-    just run pytest {{ args }}
+test *args: (run "pytest" args)
 
 [doc("Run pre-commit hooks for all files")]
 lint: pre-commit::run

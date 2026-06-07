@@ -104,10 +104,35 @@ list: (just::list source_file)
   ```
 
   Single commands stay as a plain recipe line — no shebang.
-- **Delegate, don't duplicate.** Compose recipes via dependencies
-  (`run *args="--all-files": (pre-commit "run" args)`) or cross-module calls
-  (`just --justfile {{ source_file }} other`). Reach across modules with
-  `{{ module_file() }}` and locate the caller with `{{ invocation_directory() }}`.
+- **Call another recipe as a dependency, not from the shell body.** When a recipe
+  only forwards to another recipe, use just's dependency-call syntax
+  `recipe: (other "arg" …)` instead of a `just other arg …` line in the body. The
+  call is resolved at parse time, spawns no nested `just` process, and reads as
+  composition:
+
+  ```just
+  # prefer
+  [doc("List the per-session keys in the sessions KV bucket")]
+  sessions-ls: (nats "kv" "ls" "comprehender-sessions")
+
+  # not
+  [doc("List the per-session keys in the sessions KV bucket")]
+  sessions-ls:
+      just nats kv ls comprehender-sessions
+  ```
+
+  Variadic args pass straight through — `test *args: (run "pytest" args)`. Two cases
+  keep the `just …` body form because a dependency call can't express them:
+
+  - the value must be computed in the shell, e.g. inside a command substitution
+    `$(…)` (`@git remote get-url $(just --justfile {{ source_file }} remote-name)`);
+  - the target recipe is **out of scope** — a dependency only resolves recipes in
+    this file plus its imported modules, so a module recipe that forwards to one the
+    *consumer* defines (e.g. `pre-commit::pre-commit` → the consumer's `run`) must
+    call `just run …` in the body.
+
+  Reach across modules with `{{ module_file() }}` and locate the caller with
+  `{{ invocation_directory() }}`.
 - **Thin tool wrappers** follow the `run`/`*args` shape:
 
   ```just
