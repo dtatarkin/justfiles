@@ -11,6 +11,7 @@ A modular collection of [just](https://github.com/casey/just) recipes to superch
 - **Git Workflows:** Fetch, pull, push with submodule-aware defaults.
 - **Submodule Management:** Add, remove, update, and inspect git submodules.
 - **Worktree Support:** Create and list git worktrees.
+- **Agent Conventions:** [`AGENTS.md`](AGENTS.md) is the single source of truth for how AI agents author justfiles across every project that vendors this submodule.
 
 ## 🚀 Getting Started
 
