@@ -40,8 +40,8 @@ mod just 'just.just'          # only if the module calls just::list / other just
 
 source_file := source_file()
 
-# List all available recipes
 [default]
+[doc("List all available recipes")]
 list: (just::list source_file)
 ```
 
@@ -53,19 +53,50 @@ list: (just::list source_file)
 
 ## Recipe rules
 
-- **Doc comment, always.** Put a single `#` comment line immediately above every
-  public recipe — `just --list` shows it as the description. No undocumented public
-  recipes. State the *why* when the recipe is non-obvious (when to run it, what it
-  assumes), so the comment stands on its own.
+- **Help text via `[doc("…")]`, always.** Every recipe that shows up in
+  `just --list` carries an explicit `[doc("…")]` attribute holding its one-line
+  help. Do **not** rely on the bare-comment fallback: `just` would take only the
+  *last* `#` line above the recipe as the description, which silently breaks the
+  moment you add multi-line rationale above it. The `[doc("…")]` is the help text,
+  full stop.
+- **Comments are rationale only — never the help text.** Use `#` lines above a
+  recipe for the *why*, examples, gotchas, or when-to-run notes. **Never duplicate**
+  the `[doc("…")]` string in a comment. A recipe that needs no extra context has
+  just its `[doc("…")]` and no comment at all.
+- **Separate a rationale comment from the recipe with one blank line.** This is not
+  cosmetic: `just` binds the comment line *touching* a recipe as a doc-comment, and
+  `just --fmt` then **deletes that line** because the `[doc("…")]` attribute
+  supersedes it — silently dropping your last rationale line. Always leave a blank
+  line between the comment block and the `[doc("…")]`:
+
+  ```just
+  # dbt wants these at the subcommand level, not the top level, so we re-shape
+  # `dbt <cmd> [args]` into `dbt <cmd> --project-dir … --profiles-dir … [args]`.
+
+  [doc("Wrap `dbt` with the project/profiles dir baked in (e.g. `just dbt run`)")]
+  dbt cmd *args:
+      uv run dbt {{ cmd }} --project-dir dbt_proj --profiles-dir dbt_proj {{ args }}
+
+  [doc("Run pytest across the test suite")]
+  test *args:
+      uv run pytest {{ args }}
+  ```
+
+- **Don't hand-order attributes — `just --fmt` sorts them alphabetically**
+  (`[default]`, `[doc("…")]`, `[linux]`, `[no-cd]`, `[private]`, …). Write them in
+  any order and let the formatter normalize; the pre-commit `format-justfile` hook
+  enforces it.
 - **`[no-cd]`** on any recipe meant to act in the **caller's** directory (most git,
   submodule, and lint recipes). Without it, `just` runs the recipe from the module's
   own directory, which is almost never what a shared recipe wants.
 - **`[private]` + `_underscore` prefix** for internal helpers that should not appear
-  in `--list` (e.g. `_members`).
+  in `--list` (e.g. `_members`). Private recipes have no help text, so they carry
+  **no** `[doc("…")]` — a `#` rationale comment is fine.
 - **Shebang for multi-line shell.** A recipe with more than one shell statement uses
   a shebang body with strict mode:
 
   ```just
+  [doc("…")]
   recipe arg:
       #!/usr/bin/env bash
       set -euo pipefail
@@ -80,9 +111,11 @@ list: (just::list source_file)
 - **Thin tool wrappers** follow the `run`/`*args` shape:
 
   ```just
+  [doc("Run a command in the project environment")]
   run *args:
       uv run {{ args }}
 
+  [doc("Start an IPython shell in the project environment")]
   ipython *args:
       just run ipython {{ args }}
   ```
@@ -101,6 +134,7 @@ list: (just::list source_file)
   set dotenv-load          # only when the project uses a .env
 
   [default]
+  [doc("List all available recipes")]
   list: (just::list source_file)
   ```
 

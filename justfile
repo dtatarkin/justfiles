@@ -6,20 +6,21 @@ mod uv-workspace
 
 source_file := source_file()
 
-# List all available recipes
 [default]
+[doc("List all available recipes")]
 list: (just::list source_file)
 
-# Run a command in project environment
+[doc("Run a command in the project environment")]
 run *args:
     uv run {{ args }}
 
-# Run tests with pytest
+[doc("Run tests with pytest")]
 test *args:
     just run pytest {{ args }}
 
-# Run pre-commit hooks for all files
+[doc("Run pre-commit hooks for all files")]
 lint: pre-commit::run
 
+[doc("Push to the remote")]
 push *args:
     git push {{ args }}

@@ -2,22 +2,23 @@ mod just 'just.just'
 
 source_file := source_file()
 
-# List all available recipes
 [default]
+[doc("List all available recipes")]
 list: (just::list source_file)
 
 # Read workspace member directory names (space-separated) from `pyproject.toml`
 # in the consumer's working directory. Internal helper for other recipes.
-[private]
+
 [no-cd]
+[private]
 _members:
     @python3 -c "import tomllib, pathlib; cfg = tomllib.loads(pathlib.Path('pyproject.toml').read_text()); print(*cfg['tool']['uv']['workspace']['members'])"
 
 # Use BEFORE editing files inside a workspace-member submodule so commits
 # land on a real branch, not a dangling HEAD. `member` may be a workspace
 # member name or `all` (all members listed in pyproject.toml).
-#
-# Switch a workspace-member submodule to its tracking branch (main) and fast-forward
+
+[doc("Switch a workspace-member submodule to its tracking branch (main) and fast-forward")]
 [no-cd]
 edit member:
     #!/usr/bin/env bash
@@ -32,7 +33,7 @@ edit member:
         (cd "$m" && git switch main && git pull --ff-only)
     done
 
-# Show pinned-vs-current SHA and working-tree state for each workspace member.
+[doc("Show pinned-vs-current SHA and working-tree state for each workspace member")]
 [no-cd]
 status:
     #!/usr/bin/env bash
@@ -44,8 +45,8 @@ status:
 # any changes inside the member have been pushed to its upstream. Doesn't
 # push this repo. `member` may be a member name or `all` (one bump commit
 # per advanced member).
-#
-# Capture a workspace-member submodule's current SHA as a new pin in this repo
+
+[doc("Capture a workspace-member submodule's current SHA as a new pin in this repo")]
 [no-cd]
 bump member:
     #!/usr/bin/env bash
