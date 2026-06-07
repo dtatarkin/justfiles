@@ -141,8 +141,7 @@ list: (just::list source_file)
       uv run {{ args }}
 
   [doc("Start an IPython shell in the project environment")]
-  ipython *args:
-      just run ipython {{ args }}
+  ipython *args: (run "ipython" args)
   ```
 
 ## Consumer (per-project) files
