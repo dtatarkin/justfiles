@@ -185,7 +185,13 @@ list: (just::list source_file)
   `init` performs the submodule checkout) may inline `@just --list` in its
   `list` recipe instead of delegating to `just::list`, and may inline its
   bootstrap recipes (`init`, `status`) rather than forwarding to shared
-  modules. Everything that only runs *after* init still delegates.
+  modules. A dependency on a recipe from an unresolved `mod?` is a **parse
+  error**, so in a bootstrap entrypoint *every* forward into an optional
+  module uses a `just <module>::<recipe>` shell-body line instead of a
+  dependency call (e.g. `push` runs `just git-submodule::push` then
+  `just git::push`). The same applies to any local module the entrypoint
+  loads **non-optionally** — it is parsed pre-init too, so its `list`
+  re-spells `@just --justfile {{ source_file }} --list`.
 
 ## Formatting & enforcement
 
