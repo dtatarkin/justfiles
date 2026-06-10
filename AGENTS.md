@@ -47,8 +47,13 @@ list: (just::list source_file)
 
 - `source_file := source_file()` lets recipes reference their own file for
   `just --justfile {{ source_file }} ...` cross-recipe calls. Always assign it.
-- Every module exposes a `[default] list` recipe so a bare `just <module>` prints
-  its recipes. Delegate to `just::list` rather than re-spelling `just --list`.
+- Every module exposes a `list` recipe so `just <module> list` prints its
+  recipes. Delegate to `just::list` rather than re-spelling `just --list`.
+- `[default]` normally sits on `list` (a bare `just <module>` then lists). A
+  **single-purpose** module — one whose name *is* its primary action, like a
+  `test` module whose main recipe runs the suite — MAY put `[default]` on that
+  primary recipe instead, so `just test` runs the tests. Keep the `list`
+  recipe available either way.
 - Declare a `mod <dep> '<dep>.just'` line for every sibling module the file calls.
 
 ## Recipe rules
@@ -133,6 +138,12 @@ list: (just::list source_file)
 
   Reach across modules with `{{ module_file() }}` and locate the caller with
   `{{ invocation_directory() }}`.
+- **Group recipes with `[group("…")]` when concerns cluster.** A justfile whose
+  public recipes span several distinct concerns (bootstrap, git, qa, codegen, …)
+  carries `[group("…")]` attributes so `just --list` prints them organized.
+  Group names are lowercase single words, reused across repositories for
+  recurring concerns (`qa`, `git`, `codegen`). Small single-concern files —
+  including most modules in this repo — need no groups.
 - **Thin tool wrappers** follow the `run`/`*args` shape:
 
   ```just
@@ -169,6 +180,12 @@ list: (just::list source_file)
   `justfiles/` submodule is checked out — keeps a non-recursive clone from failing
   to parse. Use the optional form for every reference into the submodule from a
   bootstrap-reachable file.
+- **Bootstrap-entrypoint exception.** An entrypoint `justfile` that must parse
+  *and run* before `justfiles/` is checked out (e.g. an umbrella root whose
+  `init` performs the submodule checkout) may inline `@just --list` in its
+  `list` recipe instead of delegating to `just::list`, and may inline its
+  bootstrap recipes (`init`, `status`) rather than forwarding to shared
+  modules. Everything that only runs *after* init still delegates.
 
 ## Formatting & enforcement
 
