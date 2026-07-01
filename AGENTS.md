@@ -10,7 +10,7 @@ Edit the conventions **here only**. Do not copy them into per-project files.
 
 When creating or editing a justfile, conform to everything below. When in doubt,
 read the existing modules in this repo (`git.just`, `just.just`, `pre-commit.just`,
-`uv-workspace.just`, `git-submodule.just`) — they are the worked examples.
+`git-submodule.just`) — they are the worked examples.
 
 ## Reuse before you author
 
@@ -23,7 +23,6 @@ mod just          '../justfiles/just.just'
 mod git           '../justfiles/git.just'
 mod git-submodule '../justfiles/git-submodule.just'
 mod pre-commit    '../justfiles/pre-commit.just'
-mod uv-workspace  '../justfiles/uv-workspace.just'
 ```
 
 A project's own `justfile` should shrink to: these imports, plus the handful of

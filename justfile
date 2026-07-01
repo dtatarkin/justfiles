@@ -2,7 +2,6 @@ mod just
 mod git
 mod git-submodule
 mod pre-commit
-mod uv-workspace
 
 source_file := source_file()
 
