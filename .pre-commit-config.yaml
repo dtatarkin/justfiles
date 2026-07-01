@@ -1,11 +1,19 @@
 exclude: ^.*\.egg-info/
 repos:
-  - repo: https://github.com/instrumentl/pre-commit-just
-    rev: v0.1
+  # Local hook instead of instrumentl/pre-commit-just: that hook runs whichever
+  # `just` is first on PATH and its output flaps across just builds. Unlike the
+  # workspace's `uv run just` hook, this repo is not installable via `uv run`,
+  # so it pins rust-just through `uvx` (matching the workspace's
+  # rust-just==1.49.0). Its files pattern also covers the *.just modules.
+  - repo: local
     hooks:
       - id: format-justfile
+        name: Format Justfiles
+        entry: bash -c 'for f in "$@"; do uvx --from rust-just==1.49.0 just --fmt --unstable --justfile "$f"; done' --
+        language: system
+        files: (^|/)justfile$|\.just$
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.3
+    rev: 0.11.7
     hooks:
       - id: uv-lock
   - repo: https://github.com/abravalheri/validate-pyproject
@@ -13,7 +21,7 @@ repos:
     hooks:
       - id: validate-pyproject
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.2
+    rev: v8.30.0
     hooks:
       - id: gitleaks
   - repo: https://github.com/pre-commit/pre-commit-hooks
