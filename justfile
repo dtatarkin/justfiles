@@ -10,15 +10,19 @@ source_file := source_file()
 list: (just::list source_file)
 
 [doc("Run a command in the project environment")]
+[positional-arguments]
 run *args:
-    uv run {{ args }}
+    uv run "$@"
 
 [doc("Run tests with pytest")]
-test *args: (run "pytest" args)
+[positional-arguments]
+test *args:
+    just --justfile {{ source_file }} run pytest "$@"
 
 [doc("Run pre-commit hooks for all files")]
 lint: pre-commit::run
 
 [doc("Push to the remote")]
+[positional-arguments]
 push *args:
-    git push {{ args }}
+    git push "$@"

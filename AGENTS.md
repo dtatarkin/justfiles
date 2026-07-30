@@ -78,12 +78,17 @@ list: (just::list source_file)
   # `dbt <cmd> [args]` into `dbt <cmd> --project-dir … --profiles-dir … [args]`.
 
   [doc("Wrap `dbt` with the project/profiles dir baked in (e.g. `just dbt run`)")]
+  [positional-arguments]
   dbt cmd *args:
-      uv run dbt {{ cmd }} --project-dir dbt_proj --profiles-dir dbt_proj {{ args }}
+      #!/usr/bin/env bash
+      set -euo pipefail
+      cmd=$1; shift
+      uv run dbt "$cmd" --project-dir dbt_proj --profiles-dir dbt_proj "$@"
 
   [doc("Run pytest across the test suite")]
+  [positional-arguments]
   test *args:
-      uv run pytest {{ args }}
+      uv run pytest "$@"
   ```
 
 - **Don't hand-order attributes — `just --fmt` sorts them alphabetically**
@@ -108,6 +113,29 @@ list: (just::list source_file)
   ```
 
   Single commands stay as a plain recipe line — no shebang.
+- **Pass user arguments as positionals — never splat `{{ args }}` into the body.**
+  `just` joins a variadic with spaces and splices it into the recipe line as
+  *text*, which the shell then re-parses: any quoted argument (`-k 'a or b'`, a
+  JMESPath `--query`, a path with spaces) is silently re-split or becomes a
+  syntax error. A wrapper that forwards user args to a tool declares
+  `[positional-arguments]` and passes `"$@"`:
+
+  ```just
+  [doc("Run a command in the project environment")]
+  [positional-arguments]
+  run *args:
+      uv run "$@"
+  ```
+
+  With a named parameter *before* the variadic, `"$@"` would include it — use a
+  shebang body and `shift` (see the dbt example above). For a single named
+  parameter interpolated into shell text, `{{ quote(param) }}` escapes it.
+  Two spots where argument fidelity is impossible by construction, so plain
+  tokens only: a variadic forwarded through a **dependency call** (space-joined
+  into one argument — see the next bullet), and args embedded in a quoted
+  command string that a nested shell re-evaluates, e.g.
+  `git submodule foreach "git fetch {{ args }}"` (`git-submodule.just` accepts
+  this deliberately).
 - **Call another recipe as a dependency, not from the shell body.** When a recipe
   only forwards to another recipe, use just's dependency-call syntax
   `recipe: (other "arg" …)` instead of a `just other arg …` line in the body. The
@@ -125,15 +153,22 @@ list: (just::list source_file)
       just nats kv ls comprehender-sessions
   ```
 
-  Variadic args pass straight through — `test *args: (run "pytest" args)`. Two cases
-  keep the `just …` body form because a dependency call can't express them:
+  Fixed literal args pass cleanly — each literal is one argument. A **variadic**
+  passed in a dependency call is space-joined into a single argument (`just` has
+  no arrays), so quoting cannot survive that hop: `(run "pytest" args)` is fine
+  only when the args are plain tokens. Three cases keep the `just …` body form
+  because a dependency call can't express them:
 
   - the value must be computed in the shell, e.g. inside a command substitution
     `$(…)` (`@git remote get-url $(just --justfile {{ source_file }} remote-name)`);
   - the target recipe is **out of scope** — a dependency only resolves recipes in
     this file plus its imported modules, so a module recipe that forwards to one the
     *consumer* defines (e.g. `pre-commit::pre-commit` → the consumer's `run`) must
-    call `just run …` in the body.
+    call `just run …` in the body;
+  - forwarded user args must keep their boundaries — the forwarder declares
+    `[positional-arguments]` and calls
+    `just --justfile {{ source_file }} run pytest "$@"` so the args travel as
+    real argv, never as re-parsed text.
 
   Reach across modules with `{{ module_file() }}` and locate the caller with
   `{{ invocation_directory() }}`.
@@ -143,15 +178,19 @@ list: (just::list source_file)
   Group names are lowercase single words, reused across repositories for
   recurring concerns (`qa`, `git`, `codegen`). Small single-concern files —
   including most modules in this repo — need no groups.
-- **Thin tool wrappers** follow the `run`/`*args` shape:
+- **Thin tool wrappers** follow the `run`/`*args` shape — positional
+  pass-through at every hop:
 
   ```just
   [doc("Run a command in the project environment")]
+  [positional-arguments]
   run *args:
-      uv run {{ args }}
+      uv run "$@"
 
   [doc("Start an IPython shell in the project environment")]
-  ipython *args: (run "ipython" args)
+  [positional-arguments]
+  ipython *args:
+      just --justfile {{ source_file }} run ipython "$@"
   ```
 
 ## Consumer (per-project) files

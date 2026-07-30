@@ -28,18 +28,21 @@ remote:
 
 [doc("Fetch all remotes and tags")]
 [no-cd]
+[positional-arguments]
 fetch *args:
-    git fetch --all --tags {{ args }}
+    git fetch --all --tags "$@"
 
 [doc("Push with submodule check")]
 [no-cd]
+[positional-arguments]
 push *args:
-    git push --recurse-submodules=on-demand {{ args }}
+    git push --recurse-submodules=on-demand "$@"
 
 [doc("Pull with submodule check")]
 [no-cd]
+[positional-arguments]
 pull *args:
-    git pull --all --jobs 2 --tags --ff-only {{ args }}
+    git pull --all --jobs 2 --tags --ff-only "$@"
 
 [doc("Add a new git worktree for the given commit-ish")]
 [no-cd]
@@ -48,5 +51,6 @@ worktree-add name commit-ish *options:
 
 [doc("List all git worktrees")]
 [no-cd]
+[positional-arguments]
 worktree-list *args:
-    git worktree list {{ args }}
+    git worktree list "$@"
