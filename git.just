@@ -46,8 +46,12 @@ pull *args:
 
 [doc("Add a new git worktree for the given commit-ish")]
 [no-cd]
+[positional-arguments]
 worktree-add name commit-ish *options:
-    git worktree add {{ options }} ../{{ name }}-{{ commit-ish }} {{ commit-ish }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    name=$1; commit_ish=$2; shift 2
+    git worktree add "$@" "../$name-$commit_ish" "$commit_ish"
 
 [doc("List all git worktrees")]
 [no-cd]

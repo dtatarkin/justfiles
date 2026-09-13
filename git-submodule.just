@@ -30,27 +30,37 @@ remote:
 [doc("Add a git submodule to the repository")]
 [no-cd]
 add url path branch:
+    #!/usr/bin/env bash
+    set -euo pipefail
     git submodule add -b {{ branch }} {{ url }} {{ path }}
     git submodule init {{ path }}
 
 [doc("Remove a git submodule from the repository")]
 [no-cd]
 remove path:
+    #!/usr/bin/env bash
+    set -euo pipefail
     git submodule deinit -f {{ path }}
     git rm -f {{ path }}
     rm -rf .git/modules/{{ path }}
 
 [doc("Set the tracking branch for a submodule and update it")]
 [no-cd]
+[positional-arguments]
 set-branch submodule branch *args="--rebase":
-    git config --file .gitmodules submodule.{{ submodule }}.branch {{ branch }}
-    git submodule update --remote {{ args }}
-    cd {{ submodule }}; git switch {{ branch }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    submodule=$1; branch=$2; shift 2
+    git config --file .gitmodules "submodule.$submodule.branch" "$branch"
+    git submodule update --remote "$@"
+    cd "$submodule"
+    git switch "$branch"
 
 [doc("Show status of git submodules")]
 [no-cd]
+[positional-arguments]
 status *args="--recursive":
-    git submodule status {{ args }}
+    git submodule status "$@"
 
 [doc("Show verbose status of git submodules")]
 [no-cd]
