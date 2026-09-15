@@ -8,6 +8,7 @@ A modular collection of [just](https://github.com/casey/just) recipes to superch
 
 - **Modular Design:** Import only what you need (Git, Pre-commit, Just utilities, ...).
 - **Pre-commit Ready:** Automated formatting and validation for your justfiles.
+- **Claude Commits:** A headless `claude -p` session writes the commit message for what you staged.
 - **Git Workflows:** Fetch, pull, push with submodule-aware defaults.
 - **Submodule Management:** Add, remove, update, and inspect git submodules.
 - **Worktree Support:** Create and list git worktrees.
@@ -60,6 +61,12 @@ git submodule update --remote justfiles
 | `just list` | List all available recipes |
 | `just run *args` | Run a command in project environment via `uv run` |
 | `just lint` | Run pre-commit hooks for all files |
+
+### Claude (`claude.just`)
+
+| Recipe | Description |
+|--------|-------------|
+| `just claude commit-staged` | Commit the staged changes with a message written by headless Claude |
 
 ### Git (`git.just`)
 
