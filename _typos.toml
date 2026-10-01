@@ -1,0 +1,3 @@
+[files]
+# A lockfile is not text anyone wrote: a hash that spells a word is not a typo.
+extend-exclude = ["uv.lock"]

@@ -1,0 +1,8 @@
+# `document-start` is off because hook configurations carry no leading marker;
+# 120 is the line width the markdown rules use as well.
+extends: default
+
+rules:
+  document-start: disable
+  line-length:
+    max: 120

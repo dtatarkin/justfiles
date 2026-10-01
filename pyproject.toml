@@ -10,11 +10,21 @@ dependencies = []
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# mypy, ty and rust-just are run by the commit hooks through `uv run`, so the
+# lockfile is where their versions are pinned.
 [dependency-groups]
 dev = [
-    "pre-commit>=4.5.1",
-    "pytest>=8.0",
+  "mypy>=2.3.1",
+  "pre-commit>=4.5.1",
+  "pytest>=8.0",
+  "rust-just>=1.58.0",
+  "ty>=0.0.84",
 ]
+
+# This repository ships `just` modules, not a Python distribution: there is no
+# package to build, so the project environment holds the development tools only.
+[tool.uv]
+package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -25,6 +35,14 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "TID"]
+extend-select = ["S"]
+# Calling a tool by name is the contract here, so the two subprocess rules fire
+# on correct code.
+ignore = ["S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are made of asserts.
+"tests/**" = ["S101"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "__future__".msg = "from __future__ imports are forbidden (Python floor is 3.12)"

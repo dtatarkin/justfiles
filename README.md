@@ -25,7 +25,8 @@ A modular collection of [just](https://github.com/casey/just) recipes to superch
 
 ## 🚀 Recommended Setup
 
-The best way to use these recipes in your own project is by adding this repository as a git submodule. This allows you to keep the recipes updated and choose exactly which modules to import.
+The best way to use these recipes in your own project is by adding this repository as a git submodule.
+This allows you to keep the recipes updated and choose exactly which modules to import.
 
 ### 1. Add as a Submodule
 
@@ -102,7 +103,10 @@ git submodule update --remote justfiles
 
 ### Pre-commit (`pre-commit.just`)
 
-Works with either hook runner, [pre-commit](https://pre-commit.com) or [prek](https://github.com/j178/prek). The recipes call whichever one your project's `run` recipe can start: `pre-commit` when it resolves there, `prek` otherwise. Set `PRE_COMMIT_RUNNER` to choose explicitly, for instance with `export PRE_COMMIT_RUNNER := "prek"` in your `justfile`.
+Works with either hook runner, [pre-commit](https://pre-commit.com) or [prek](https://github.com/j178/prek).
+The recipes call whichever one your project's `run` recipe can start:
+`pre-commit` when it resolves there, `prek` otherwise.
+Set `PRE_COMMIT_RUNNER` to choose explicitly, for instance with `export PRE_COMMIT_RUNNER := "prek"` in your `justfile`.
 
 | Recipe | Description |
 |--------|-------------|
