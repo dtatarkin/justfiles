@@ -102,8 +102,11 @@ git submodule update --remote justfiles
 
 ### Pre-commit (`pre-commit.just`)
 
+Works with either hook runner, [pre-commit](https://pre-commit.com) or [prek](https://github.com/j178/prek). The recipes call whichever one your project's `run` recipe can start: `pre-commit` when it resolves there, `prek` otherwise. Set `PRE_COMMIT_RUNNER` to choose explicitly, for instance with `export PRE_COMMIT_RUNNER := "prek"` in your `justfile`.
+
 | Recipe | Description |
 |--------|-------------|
+| `just pre-commit runner` | Print the hook runner these recipes call |
 | `just pre-commit install` | Install the git hook scripts |
 | `just pre-commit uninstall` | Uninstall the git hook scripts |
 | `just pre-commit run` | Run all pre-commit hooks (defaults to `--all-files`) |
