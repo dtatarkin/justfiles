@@ -44,14 +44,73 @@ push *args:
 pull *args:
     git pull --all --jobs 2 --tags --ff-only "$@"
 
-[doc("Add a new git worktree for the given commit-ish")]
+# Run from the main checkout. A new worktree starts with every submodule empty,
+# and whatever it builds or lints may need them.
+
+[doc("Add a new git worktree for the given commit-ish, with its submodules initialised")]
 [no-cd]
 [positional-arguments]
 worktree-add name commit-ish *options:
     #!/usr/bin/env bash
     set -euo pipefail
     name=$1; commit_ish=$2; shift 2
-    git worktree add "$@" "../$name-$commit_ish" "$commit_ish"
+    path="../$name-$commit_ish"
+    git worktree add "$@" "$path" "$commit_ish"
+    git -C "$path" submodule update --init --recursive
+
+# Run from the main checkout. A rebase then a fast-forward, never a merge commit
+# or a squash, so each commit of the branch survives and they stay contiguous.
+# The rebase rewrites their SHAs, hence the list printed at the end.
+#
+# A rebase conflict is a judgment call: the recipe stops there, with the worktree
+# mid-rebase and the default branch unmoved. Resolve it in the worktree, finish
+# the rebase, and run the recipe again.
+#
+# `git worktree remove` refuses a worktree with initialised submodules, and the
+# `--force` that gets past it also discards what only that worktree holds. So
+# the recipe first refuses uncommitted work and submodule commits no remote has;
+# ignored files count as disposable.
+#
+# The default branch is what the remotes' HEADs name, whatever the remotes are
+# called; a repository with no remote HEAD takes the main checkout's branch.
+
+[doc("Land a worktree's branch on the default branch by rebase and fast-forward, then delete the branch and worktree")]
+[no-cd]
+[positional-arguments]
+worktree-land branch:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch=$1
+    main=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+    default=$(git for-each-ref --format='%(symref:lstrip=3)' 'refs/remotes/*/HEAD' | sort -u)
+    default=${default:-$(git -C "$main" branch --show-current)}
+    if [[ $(git rev-parse --show-toplevel) != "$main" || $(git branch --show-current) != "$default" ]]; then
+        echo "worktree-land: run from the main checkout, $main, on $default" >&2
+        exit 1
+    fi
+    worktree=$(git worktree list --porcelain | awk -v ref="branch refs/heads/$branch" '/^worktree /{path=substr($0,10)} $0==ref{print path}')
+    if [[ -z $worktree || $worktree == "$main" ]]; then
+        echo "worktree-land: no linked worktree has $branch checked out; mid-rebase it shows as detached, so finish the rebase there first" >&2
+        exit 1
+    fi
+    at_risk=$(
+        git -C "$worktree" status --porcelain --ignore-submodules=all
+        git -C "$worktree" submodule foreach --quiet --recursive \
+            'if [ -n "$(git status --porcelain; git rev-list --max-count=1 HEAD --branches --not --remotes)" ]; then echo "$displaypath"; fi'
+    )
+    if [[ -n $at_risk ]]; then
+        printf 'worktree-land: %s holds uncommitted work or unpushed submodule commits:\n%s\n' "$worktree" "$at_risk" >&2
+        exit 1
+    fi
+    if ! git -C "$worktree" rebase "$default"; then
+        echo "worktree-land: the rebase stopped: $default has not moved and $worktree is left mid-rebase; resolve it there, then rerun" >&2
+        exit 1
+    fi
+    landed=$(git log --reverse --format='%h %s' "$default..$branch")
+    git merge --quiet --ff-only "$branch"
+    printf 'Landed on %s:\n%s\n' "$default" "$landed"
+    git worktree remove --force "$worktree"
+    git branch --quiet --delete "$branch"
 
 [doc("List all git worktrees")]
 [no-cd]

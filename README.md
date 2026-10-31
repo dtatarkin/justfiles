@@ -11,7 +11,7 @@ A modular collection of [just](https://github.com/casey/just) recipes to superch
 - **Claude Commits:** A headless `claude -p` session writes the commit message for what you staged.
 - **Git Workflows:** Fetch, pull, push with submodule-aware defaults.
 - **Submodule Management:** Add, remove, update, and inspect git submodules.
-- **Worktree Support:** Create and list git worktrees.
+- **Worktree Support:** Create, list, and land git worktrees.
 
 ## 🚀 Getting Started
 
@@ -80,7 +80,8 @@ git submodule update --remote justfiles
 | `just git remote-branch` | Show the remote tracking branch |
 | `just git remote-name` | Show the remote name for the current branch |
 | `just git remote-url` | Show the remote URL for the current branch |
-| `just git worktree-add` | Add a new git worktree for the given commit-ish |
+| `just git worktree-add` | Add a new git worktree for the given commit-ish, with its submodules initialised |
+| `just git worktree-land` | Land a worktree's branch on the default branch by rebase and fast-forward, then delete the branch and worktree |
 | `just git worktree-list` | List all git worktrees |
 
 ### Git Submodule (`git-submodule.just`)
