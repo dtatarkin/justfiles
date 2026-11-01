@@ -44,17 +44,21 @@ push *args:
 pull *args:
     git pull --all --jobs 2 --tags --ff-only "$@"
 
-# Run from the main checkout. A new worktree starts with every submodule empty,
-# and whatever it builds or lints may need them.
+# Run from the main checkout. The worktree goes into the repository's lane
+# directory, `../<repo>.lanes/<name>`: one directory beside the checkout, named
+# after it, holding every worktree an agent works in, so a listing of the parent
+# says which project a worktree belongs to and that it is a lane. A new worktree
+# starts with every submodule empty, and whatever it builds or lints may need them.
 
-[doc("Add a new git worktree for the given commit-ish, with its submodules initialised")]
+[doc("Add a git worktree for the given commit-ish at ../<repo>.lanes/<name>, with its submodules initialised")]
 [no-cd]
 [positional-arguments]
 worktree-add name commit-ish *options:
     #!/usr/bin/env bash
     set -euo pipefail
     name=$1; commit_ish=$2; shift 2
-    path="../$name-$commit_ish"
+    top=$(git rev-parse --show-toplevel)
+    path="$(dirname "$top")/$(basename "$top").lanes/$name"
     git worktree add "$@" "$path" "$commit_ish"
     git -C "$path" submodule update --init --recursive
 
@@ -73,6 +77,9 @@ worktree-add name commit-ish *options:
 #
 # The default branch is what the remotes' HEADs name, whatever the remotes are
 # called; a repository with no remote HEAD takes the main checkout's branch.
+#
+# The worktree's parent, the lane directory `worktree-add` made, goes with the
+# last worktree in it; a parent holding anything else is left alone.
 
 [doc("Land a worktree's branch on the default branch by rebase and fast-forward, then delete the branch and worktree")]
 [no-cd]
@@ -111,6 +118,7 @@ worktree-land branch:
     printf 'Landed on %s:\n%s\n' "$default" "$landed"
     git worktree remove --force "$worktree"
     git branch --quiet --delete "$branch"
+    rmdir "$(dirname "$worktree")" 2>/dev/null || true
 
 [doc("List all git worktrees")]
 [no-cd]
