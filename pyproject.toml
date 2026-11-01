@@ -25,6 +25,9 @@ dev = [
 # package to build, so the project environment holds the development tools only.
 [tool.uv]
 package = false
+# The lockfile resolves under the hook pins' seven-day cooldown: a release less
+# than a week old is where a broken or compromised upload is still live.
+exclude-newer = "7 days"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -41,8 +44,9 @@ extend-select = ["S"]
 ignore = ["S603", "S607"]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests are made of asserts.
-"tests/**" = ["S101"]
+# Tests are made of asserts, and of fixtures named password, secret and token:
+# the credential rules match the name, never the value.
+"tests/**" = ["S101", "S105", "S106", "S107"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "__future__".msg = "from __future__ imports are forbidden (Python floor is 3.12)"
