@@ -75,6 +75,11 @@ worktree-add name commit-ish *options:
 # the recipe first refuses uncommitted work and submodule commits no remote has;
 # ignored files count as disposable.
 #
+# The main checkout is the one whose git directory is the common one. Its path
+# is not `git worktree list`'s first entry: in a submodule that entry is the
+# git directory under the superproject's `.git/modules`, and the work tree is
+# what its `core.worktree` names.
+#
 # The default branch is what the remotes' HEADs name, whatever the remotes are
 # called; a repository with no remote HEAD takes the main checkout's branch.
 #
@@ -88,15 +93,16 @@ worktree-land branch:
     #!/usr/bin/env bash
     set -euo pipefail
     branch=$1
-    main=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+    common=$(git rev-parse --path-format=absolute --git-common-dir)
+    main=$(git -C "$common" rev-parse --show-toplevel 2>/dev/null || dirname "$common")
     default=$(git for-each-ref --format='%(symref:lstrip=3)' 'refs/remotes/*/HEAD' | sort -u)
     default=${default:-$(git -C "$main" branch --show-current)}
-    if [[ $(git rev-parse --show-toplevel) != "$main" || $(git branch --show-current) != "$default" ]]; then
+    if [[ $(git rev-parse --path-format=absolute --git-dir) != "$common" || $(git branch --show-current) != "$default" ]]; then
         echo "worktree-land: run from the main checkout, $main, on $default" >&2
         exit 1
     fi
-    worktree=$(git worktree list --porcelain | awk -v ref="branch refs/heads/$branch" '/^worktree /{path=substr($0,10)} $0==ref{print path}')
-    if [[ -z $worktree || $worktree == "$main" ]]; then
+    worktree=$(git worktree list --porcelain | awk -v ref="branch refs/heads/$branch" '/^worktree /{n++; path=substr($0,10)} n>1 && $0==ref{print path}')
+    if [[ -z $worktree ]]; then
         echo "worktree-land: no linked worktree has $branch checked out; mid-rebase it shows as detached, so finish the rebase there first" >&2
         exit 1
     fi
