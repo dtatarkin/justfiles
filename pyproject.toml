@@ -6,10 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 # mypy, ty and rust-just are run by the commit hooks through `uv run`, so the
 # lockfile is where their versions are pinned.
 [dependency-groups]

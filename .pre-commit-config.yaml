@@ -2,7 +2,6 @@
 # spelling and justfile formatting always; the Python checks because of
 # pyproject.toml; the YAML, TOML and markdown checks because of those files.
 # The hooks that read Python or nix source are inert while the tree has none.
-exclude: ^.*\.egg-info/
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
