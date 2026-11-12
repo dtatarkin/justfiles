@@ -69,6 +69,13 @@ repos:
       - id: rumdl-check
         args: [--fix]
 
+  - repo: https://github.com/lycheeverse/lychee
+    rev: lychee-v0.24.2
+    hooks:
+      - id: lychee
+        args: [--offline, --no-progress]
+        types: [markdown]
+
   - repo: local
     hooks:
       # A local hook, because the formatter is the task runner itself. It is
