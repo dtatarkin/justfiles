@@ -54,5 +54,17 @@ autoupdate: (pre-commit "autoupdate")
 run *args="--all-files":
     just --justfile {{ source_file }} pre-commit run "$@"
 
-[doc("Validate pre-commit config and manifest")]
-validate: (pre-commit "validate-config") (pre-commit "validate-manifest")
+# Both subcommands validate only the files they are given, so the recipe names
+# them: the configuration always, the hook manifest only in a repository that
+# publishes hooks. Both live at the repository root, wherever this is run from.
+
+[doc("Validate the pre-commit config, and the hook manifest where there is one")]
+[no-cd]
+validate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "$(git rev-parse --show-toplevel)"
+    just --justfile {{ source_file }} pre-commit validate-config .pre-commit-config.yaml
+    if [ -f .pre-commit-hooks.yaml ]; then
+        just --justfile {{ source_file }} pre-commit validate-manifest .pre-commit-hooks.yaml
+    fi

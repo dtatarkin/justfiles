@@ -116,7 +116,7 @@ Set `PRE_COMMIT_RUNNER` to choose explicitly, for instance with `export PRE_COMM
 | `just pre-commit uninstall` | Uninstall the git hook scripts |
 | `just pre-commit run` | Run all pre-commit hooks (defaults to `--all-files`) |
 | `just pre-commit autoupdate` | Update pre-commit hooks to latest versions |
-| `just pre-commit validate` | Validate pre-commit config and manifest |
+| `just pre-commit validate` | Validate the pre-commit config, and the hook manifest where there is one |
 
 ### Just Utilities (`just.just`)
 
