@@ -50,3 +50,4 @@ ignore = ["S603", "S607"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+files = ["scripts", "tests"]

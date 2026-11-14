@@ -62,6 +62,17 @@ worktree-add name commit-ish *options:
     git worktree add "$@" "$path" "$commit_ish"
     git -C "$path" submodule update --init --recursive
 
+# Run from inside the worktree, whoever made it. A fresh worktree may lack the
+# file that loads this module, so the first run names a justfile that loads it,
+# such as the main checkout's: `just --justfile <main checkout>/justfile
+# git::worktree-prepare .env`. The rationale is the script's.
+
+[doc("Link a worktree's uv workspace siblings, and the paths named, to its main checkout's")]
+[no-cd]
+[positional-arguments]
+worktree-prepare *paths:
+    python3 {{ quote(source_directory() / "scripts" / "worktree_prepare.py") }} "$@"
+
 # Run from the main checkout. A rebase then a fast-forward, never a merge commit
 # or a squash, so each commit of the branch survives and they stay contiguous.
 # The rebase rewrites their SHAs, hence the list printed at the end.
