@@ -69,11 +69,15 @@ repos:
       - id: rumdl-check
         args: [--fix]
 
+  # LYCHEE_VERSION, upstream's own override, restates rev and moves with it.
+  # Without it the hook's script reads its version from its checkout's tag with
+  # git, and a commit from a submodule or a linked worktree hands the hook
+  # GIT_DIR, so git reads this repository's tags instead and the hook exits 100.
   - repo: https://github.com/lycheeverse/lychee
     rev: lychee-v0.24.2
     hooks:
       - id: lychee
-        args: [--offline, --no-progress]
+        args: [LYCHEE_VERSION=0.24.2, --offline, --no-progress]
         types: [markdown]
 
   - repo: local
