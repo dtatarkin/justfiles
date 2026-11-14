@@ -68,3 +68,24 @@ validate:
     if [ -f .pre-commit-hooks.yaml ]; then
         just --justfile {{ source_file }} pre-commit validate-manifest .pre-commit-hooks.yaml
     fi
+
+# A fixing hook exits 1 for every file it rewrote, so one pass cannot tell a
+# fix from a failure: the first pass fixes, and a second over the same files is
+# the verdict. The runner classifies the files it is handed by type and takes
+# no directory, so the paths are expanded to the tracked files beneath them.
+
+[doc("Run one hook over the tracked files under the paths, fixing, then judging")]
+[no-cd]
+[positional-arguments]
+fix hook +paths:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    hook=$1
+    shift
+    mapfile -t files < <(git ls-files -- "$@")
+    if [ ${#files[@]} -eq 0 ]; then
+        echo "fix: no tracked file under $*" >&2
+        exit 0
+    fi
+    just --justfile {{ source_file }} run "$hook" --files "${files[@]}" ||
+        just --justfile {{ source_file }} run "$hook" --files "${files[@]}"
