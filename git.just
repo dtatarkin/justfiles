@@ -93,6 +93,9 @@ worktree-prepare *paths:
 #
 # The default branch is what the remotes' HEADs name, whatever the remotes are
 # called; a repository with no remote HEAD takes the main checkout's branch.
+# Remote HEADs are recorded at clone time and drift apart: when they disagree,
+# the main checkout's branch decides if it is one of them, and otherwise the
+# recipe refuses, naming each remote's HEAD.
 #
 # The worktree's parent, the lane directory `worktree-add` made, goes with the
 # last worktree in it; a parent holding anything else is left alone.
@@ -106,9 +109,18 @@ worktree-land branch:
     branch=$1
     common=$(git rev-parse --path-format=absolute --git-common-dir)
     main=$(git -C "$common" rev-parse --show-toplevel 2>/dev/null || dirname "$common")
-    default=$(git for-each-ref --format='%(symref:lstrip=3)' 'refs/remotes/*/HEAD' | sort -u)
-    default=${default:-$(git -C "$main" branch --show-current)}
-    if [[ $(git rev-parse --path-format=absolute --git-dir) != "$common" || $(git branch --show-current) != "$default" ]]; then
+    heads=$(git for-each-ref --format='%(symref:lstrip=3)' 'refs/remotes/*/HEAD' | sort -u)
+    current=$(git -C "$main" branch --show-current)
+    if [[ -z $heads ]] || grep -qxF -- "$current" <<<"$heads"; then
+        default=$current
+    elif [[ $heads != *$'\n'* ]]; then
+        default=$heads
+    else
+        printf 'worktree-land: the remotes disagree on the default branch and %s is on none of them:\n%s\nCheck out the default branch there, or align the remotes with `git remote set-head <remote> <branch>`\n' \
+            "$main" "$(git for-each-ref --format='  %(refname:lstrip=2) -> %(symref:lstrip=3)' 'refs/remotes/*/HEAD')" >&2
+        exit 1
+    fi
+    if [[ -z $default || $(git rev-parse --path-format=absolute --git-dir) != "$common" || $(git branch --show-current) != "$default" ]]; then
         echo "worktree-land: run from the main checkout, $main, on $default" >&2
         exit 1
     fi
